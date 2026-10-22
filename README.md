@@ -23,6 +23,21 @@ If GitHub repositories are cloned side-by-side in `~/tgk` and `~/tgk-tools`, `./
 
 To install the framework directly without retaining the source checkout, run `./install.sh --copy` inside `tgk`. Keep the Termux:GUI Android plugin installed and compatible with your Termux app. For an initial connection diagnostic, run `tgk doctor --connect`; for an offline check of just the C renderer run `tgk doctor --json`.
 
+## Downloadable offline installer archive
+
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.2.0.tar.gz` archive from a successful workflow run, then on Termux:
+
+```sh
+pkg install -y python clang
+python -m pip install setuptools termuxgui
+tar -xzf tgk_bundle_v0.2.0.tar.gz
+cd tgk_bundle_v0.2.0
+./install.sh
+tgk doctor --connect
+```
+
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.2.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+
 ## Shell commands
 
 ```sh
