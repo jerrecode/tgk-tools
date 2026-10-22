@@ -96,6 +96,8 @@ Exit codes: success 0, user cancellation/negative confirmation 1, argument/runti
 
 `tgk doctor --connect` and any GUI command require the Termux:GUI Android app/service; ordinary help and option parsing can run anywhere. The file picker enforces optional `--root` via resolved paths to reduce accidental traversal, but it is not a security sandbox. Large images/text have configurable limits.
 
+`show --max-chars N` reads at most N+1 Unicode characters before rejecting oversized file/stdin input; it does not read the entire input into memory first. Text/image limits must be positive. Timeouts and demo durations must be finite and non-negative (0 disables the limit). Invalid options fail before opening a GUI. Missing Termux:GUI Python bindings produce installation guidance on stderr and exit 2.
+
 The canvas demo uses ImageView image/buffer pixel coordinates directly, following the [Termux:GUI touch protocol](https://github.com/termux/termux-gui/blob/main/Protocol.md#touch-events). Pink touch markers track the latest batched pointer frame, disappear on release/cancellation, and ignore malformed or out-of-buffer coordinates. Rendering stops when the Activity is destroyed. These behaviors have offline event-loop and C framebuffer regression coverage; touchscreen alignment on Android hardware remains unverified.
 
 ## Developer notes

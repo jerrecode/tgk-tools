@@ -1,5 +1,6 @@
 """Termux:GUI shell tools. stdout is reserved for machine-readable results."""
 import argparse
+import math
 import sys
 from pathlib import Path
 from tgk.widgets import App, BoxLayout, ScrollView, Label, Button, TextInput, CheckBox
@@ -86,8 +87,10 @@ def run_choose(args):
     return 0
 
 def run_show(args):
-    if args.file=='-':text=sys.stdin.read()
-    else:text=Path(args.file).read_text(encoding='utf-8')
+    if args.file=='-':text=sys.stdin.read(args.max_chars+1)
+    else:
+        with Path(args.file).open(encoding='utf-8') as source:
+            text=source.read(args.max_chars+1)
     if len(text)>args.max_chars:raise ValueError('Input too large; use --max-chars explicitly')
     class Viewer(App):
         def build(self):
@@ -337,10 +340,22 @@ def main(argv=None):
     a=sub.add_parser('doctor',help='inspect Termux:GUI/C runtime; --connect checks actual IPC');a.add_argument('--connect',action='store_true');a.add_argument('--json',action='store_true');a.set_defaults(run=run_doctor)
     a=sub.add_parser('canvas-demo',help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=25);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
     args=p.parse_args(argv)
+    if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
+    if args.command=='image' and args.max_bytes<=0:p.error('--max-bytes must be positive')
+    for name in ('timeout','seconds'):
+        value=getattr(args,name,0)
+        if not math.isfinite(value) or value<0:p.error(f'--{name} must be finite and non-negative')
     if args.command=='canvas-demo' and not 1<=args.fps<=60:p.error('--fps must be in 1..60')
+    if args.command=='canvas-demo' and (args.width<=0 or args.height<=0 or args.width*args.height>4_194_304):
+        p.error('canvas dimensions must be positive and at most 4194304 pixels')
     if args.command=='files' and not 1<=args.max_items<=500:p.error('--max-items must be in 1..500')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
     try:return args.run(args)
+    except ModuleNotFoundError as exc:
+        if exc.name!='termuxgui':raise
+        print('tgk: Missing Python bindings: python -m pip install termuxgui; '
+              'also install the matching Termux:GUI Android app',file=sys.stderr)
+        return 2
     except (RuntimeError,ValueError,OSError) as exc:
         print('tgk:',str(exc),file=sys.stderr);return 2
 if __name__=='__main__':sys.exit(main())
