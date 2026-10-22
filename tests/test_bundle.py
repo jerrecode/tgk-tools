@@ -31,7 +31,7 @@ class OfflineBundleTests(unittest.TestCase):
                 self.assertIn(f'{BUNDLE_NAME}/install.sh', names)
                 self.assertFalse(any(name.endswith('.so') or '/.git/' in name for name in names))
                 installer = archive.extractfile(f'{BUNDLE_NAME}/install.sh').read().decode()
-                self.assertIn('./install.sh --copy', installer)
+                self.assertIn('sh ./install.sh --copy', installer)
                 check = subprocess.run(['sh', '-n'], input=installer, text=True,
                                        capture_output=True, check=False)
                 self.assertEqual(check.returncode, 0, check.stderr)
