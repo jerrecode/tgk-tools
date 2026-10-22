@@ -1,0 +1,24 @@
+name: TGK tools checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install framework from default branch
+        run: |
+          git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
+          make -C /tmp/tgk build
+          python -m pip install --no-deps /tmp/tgk
+      - name: Install tools
+        run: python -m pip install --no-deps -e .
+      - name: Tests and static checks
+        run: |
+          python -m unittest discover -s tests -v
+          python -m compileall -q tgk_tools
+          sh -n install.sh
