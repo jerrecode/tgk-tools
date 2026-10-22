@@ -8,6 +8,14 @@ command -v "$PYTHON" >/dev/null 2>&1 || {
   echo 'Missing Python: pkg install python' >&2
   exit 1
 }
+"$PYTHON" -m pip --version >/dev/null 2>&1 || {
+  echo 'Missing pip: install the Python pip module for this interpreter' >&2
+  exit 1
+}
+"$PYTHON" -c 'import setuptools.build_meta' || {
+  echo 'Missing Python build backend: python -m pip install setuptools' >&2
+  exit 1
+}
 if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 2, 0)' >/dev/null 2>&1; then
   if [ -f ../tgk/install.sh ]; then
     printf '%s\n' 'Installing TGK from sibling checkout as a self-contained copy...'
