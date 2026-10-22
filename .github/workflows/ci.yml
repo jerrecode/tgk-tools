@@ -24,6 +24,7 @@ jobs:
           sh -n install.sh
       - name: Smoke-test tools installer and CLI
         run: |
+          python -m pip install setuptools
           sh ./install.sh
           cd /tmp
           tgk --help
