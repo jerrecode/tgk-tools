@@ -11,7 +11,7 @@ command -v "$PYTHON" >/dev/null 2>&1 || {
 if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 2, 0)' >/dev/null 2>&1; then
   if [ -f ../tgk/install.sh ]; then
     printf '%s\n' 'Installing TGK from sibling checkout as a self-contained copy...'
-    (cd ../tgk && PYTHON="$PYTHON" ./install.sh --copy)
+    (cd ../tgk && PYTHON="$PYTHON" sh ./install.sh --copy)
   elif command -v git >/dev/null 2>&1; then
     # Source checkout is ephemeral: an editable installation would break after cleanup.
     FRAMEWORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/tgk-source.XXXXXXXX")"
@@ -20,7 +20,7 @@ if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); assert tuple
     trap 'exit 143' TERM
     printf '%s\n' 'Fetching TGK framework...'
     git clone --depth 1 https://github.com/jerrecode/tgk.git "$FRAMEWORK_DIR"
-    (cd "$FRAMEWORK_DIR" && PYTHON="$PYTHON" ./install.sh --copy)
+    (cd "$FRAMEWORK_DIR" && PYTHON="$PYTHON" sh ./install.sh --copy)
   else
     echo 'Install TGK framework first: https://github.com/jerrecode/tgk' >&2
     exit 1
