@@ -24,7 +24,7 @@ jobs:
           sh -n install.sh
       - name: Smoke-test tools installer and CLI
         run: |
-          ./install.sh
+          sh ./install.sh
           cd /tmp
           tgk --help
           tgk doctor --json
