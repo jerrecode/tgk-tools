@@ -22,3 +22,9 @@ jobs:
           python -m unittest discover -s tests -v
           python -m compileall -q tgk_tools
           sh -n install.sh
+      - name: Smoke-test tools installer and CLI
+        run: |
+          ./install.sh
+          cd /tmp
+          tgk --help
+          tgk doctor --json
