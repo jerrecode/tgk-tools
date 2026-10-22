@@ -14,14 +14,14 @@ pkg install -y git python clang
 python -m pip install termuxgui setuptools
 git clone https://github.com/jerrecode/tgk-tools.git
 cd tgk-tools
-./install.sh
+sh ./install.sh
 # Fetches the TGK framework if it is not installed.
 tgk doctor --connect
 ```
 
-If GitHub repositories are cloned side-by-side in `~/tgk` and `~/tgk-tools`, `./install.sh` uses the sibling `tgk` checkout. **The framework is installed as a self-contained, non-editable copy**: the tools installer also works when it downloads TGK into a temporary directory and removes that directory afterwards. The tools themselves install editably, so keep the `tgk-tools` directory. The installer uses the selected `PYTHON` interpreter consistently and does not require root.
+If GitHub repositories are cloned side-by-side in `~/tgk` and `~/tgk-tools`, `sh ./install.sh` uses the sibling `tgk` checkout. **The framework is installed as a self-contained, non-editable copy**: the tools installer also works when it downloads TGK into a temporary directory and removes that directory afterwards. The tools themselves install editably, so keep the `tgk-tools` directory. The installer uses the selected `PYTHON` interpreter consistently and does not require root.
 
-To install the framework directly without retaining the source checkout, run `./install.sh --copy` inside `tgk`. Keep the Termux:GUI Android plugin installed and compatible with your Termux app. For an initial connection diagnostic, run `tgk doctor --connect`; for an offline check of just the C renderer run `tgk doctor --json`.
+To install the framework directly without retaining the source checkout, run `sh ./install.sh --copy` inside `tgk`. Keep the Termux:GUI Android plugin installed and compatible with your Termux app. For an initial connection diagnostic, run `tgk doctor --connect`; for an offline check of just the C renderer run `tgk doctor --json`.
 
 ## Downloadable offline installer archive
 
@@ -32,7 +32,7 @@ pkg install -y python clang
 python -m pip install setuptools termuxgui
 tar -xzf tgk_bundle_v0.2.0.tar.gz
 cd tgk_bundle_v0.2.0
-./install.sh
+sh ./install.sh
 tgk doctor --connect
 ```
 
