@@ -1,4 +1,5 @@
 import subprocess
+import hashlib
 import sys
 import tarfile
 import tempfile
@@ -11,6 +12,33 @@ from build_bundle import BUNDLE_NAME, build
 
 
 class OfflineBundleTests(unittest.TestCase):
+    def sources(self, base):
+        core, tools = base/'core', base/'tools'
+        (core/'tgk/native').mkdir(parents=True)
+        (core/'tgk/native/tgk_canvas.c').write_text('/* source */')
+        (tools/'tgk_tools').mkdir(parents=True)
+        (tools/'tgk_tools/cli.py').write_text('main = None')
+        return core, tools
+
+    def test_rebuilding_inside_checkout_does_not_bundle_previous_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            core, tools = self.sources(base)
+            output = tools/'bundle.tar.gz'
+            build(core, tools, output)
+            build(core, tools, output)
+            with tarfile.open(output) as archive:
+                self.assertNotIn(f'{BUNDLE_NAME}/tgk-tools/bundle.tar.gz', archive.getnames())
+
+    def test_identical_sources_produce_identical_archive_bytes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            core, tools = self.sources(base)
+            first = build(core, tools, base/'first.tar.gz')
+            second = build(core, tools, base/'second.tar.gz')
+            self.assertEqual(hashlib.sha256(first.read_bytes()).hexdigest(),
+                             hashlib.sha256(second.read_bytes()).hexdigest())
+
     def test_bundle_contains_sources_but_not_host_binaries_or_git(self):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)

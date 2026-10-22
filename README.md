@@ -38,6 +38,8 @@ tgk doctor --connect
 
 That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.2.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.2.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+
 ## Shell commands
 
 ```sh
