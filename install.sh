@@ -1,20 +1,31 @@
 #!/usr/bin/env sh
+# Install the CLI and, when needed, a durable copy of the TGK framework.
 set -eu
 cd "$(dirname "$0")"
 PYTHON="${PYTHON:-python}"
-# Install framework from sibling checkout if present, otherwise clone it.
-if ! "$PYTHON" -c 'import tgk; assert tgk.__version__ >= "0.2.0"' 2>/dev/null; then
+
+command -v "$PYTHON" >/dev/null 2>&1 || {
+  echo 'Missing Python: pkg install python' >&2
+  exit 1
+}
+if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 2, 0)' >/dev/null 2>&1; then
   if [ -f ../tgk/install.sh ]; then
-    (cd ../tgk && ./install.sh)
+    printf '%s\n' 'Installing TGK from sibling checkout as a self-contained copy...'
+    (cd ../tgk && PYTHON="$PYTHON" ./install.sh --copy)
   elif command -v git >/dev/null 2>&1; then
-    FRAMEWORK_DIR="${TMPDIR:-/tmp}/tgk-source-$$"
-    trap 'rm -rf "$FRAMEWORK_DIR"' EXIT HUP INT TERM
+    # Source checkout is ephemeral: an editable installation would break after cleanup.
+    FRAMEWORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/tgk-source.XXXXXXXX")"
+    trap 'rm -rf -- "$FRAMEWORK_DIR"' 0
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+    printf '%s\n' 'Fetching TGK framework...'
     git clone --depth 1 https://github.com/jerrecode/tgk.git "$FRAMEWORK_DIR"
-    (cd "$FRAMEWORK_DIR" && ./install.sh)
+    (cd "$FRAMEWORK_DIR" && PYTHON="$PYTHON" ./install.sh --copy)
   else
-    echo 'Install tgk framework first: https://github.com/jerrecode/tgk' >&2
+    echo 'Install TGK framework first: https://github.com/jerrecode/tgk' >&2
     exit 1
   fi
 fi
 "$PYTHON" -m pip install --no-build-isolation --no-deps --editable .
+"$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; _lib()' 
 printf '%s\n' 'Installed. Start with: tgk doctor --connect; tgk --help'
