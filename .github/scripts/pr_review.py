@@ -20,9 +20,9 @@ except subprocess.CalledProcessError as exc:
     raise SystemExit(2)
 
 rules = (
-    ("remote-shell", re.compile(r"\\b(?:curl|wget)\\b[^\\n]*\\|\\s*(?:ba)?sh\\b"), "Review remote code before execution"),
-    ("force-push", re.compile(r"\\bgit\\s+push\\b[^\\n]*--force\\b"), "Never force-push automatically"),
-    ("delete-root", re.compile(r"\\brm\\s+-rf\\s+/(?:\\s|$)"), "Destructive filesystem-root deletion"),
+    ("remote-shell", re.compile(r"\b(?:curl|wget)\b[^\n]*\|\s*(?:ba)?sh\b"), "Review remote code before execution"),
+    ("force-push", re.compile(r"\bgit\s+push\b[^\n]*--force\b"), "Never force-push automatically"),
+    ("delete-root", re.compile(r"\brm\s+-rf\s+/(?:\s|$)"), "Destructive filesystem-root deletion"),
 )
 findings = []
 for line in diff.splitlines():
