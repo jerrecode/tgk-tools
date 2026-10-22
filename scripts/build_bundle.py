@@ -5,6 +5,7 @@ Only source files are included: C shared objects are compiled on the target
 Termux device rather than shipping incompatible Linux x86_64 binaries.
 """
 import argparse
+import gzip
 import shutil
 import tarfile
 import tempfile
@@ -58,6 +59,16 @@ def _ignore(directory, names):
     return [name for name in names if name in IGNORED or name.endswith(('.pyc', '.so', '.egg-info'))]
 
 
+def _archive_metadata(member):
+    """Keep archive bytes independent of the build host and wall clock."""
+    member.uid = member.gid = 0
+    member.uname = member.gname = ''
+    member.mtime = 0
+    member.mode = 0o755 if member.isdir() or member.mode & 0o111 else 0o644
+    member.pax_headers = {}
+    return member
+
+
 def build(tgk: Path, tools: Path, out: Path) -> Path:
     tgk = tgk.resolve(strict=True)
     tools = tools.resolve(strict=True)
@@ -70,14 +81,18 @@ def build(tgk: Path, tools: Path, out: Path) -> Path:
     with tempfile.TemporaryDirectory(prefix='tgk-bundle-') as temp:
         root = Path(temp) / BUNDLE_NAME
         root.mkdir()
-        shutil.copytree(tgk, root / 'tgk', ignore=_ignore)
-        shutil.copytree(tools, root / 'tgk-tools', ignore=_ignore)
+        def ignore(directory, names):
+            return _ignore(directory, names) + [
+                name for name in names if (Path(directory)/name).resolve() == out]
+        shutil.copytree(tgk, root / 'tgk', ignore=ignore)
+        shutil.copytree(tools, root / 'tgk-tools', ignore=ignore)
         script = root / 'install.sh'
         script.write_text(INSTALLER, encoding='utf-8')
         script.chmod(0o755)
         (root / 'README.md').write_text(README, encoding='utf-8')
-        with tarfile.open(out, 'w:gz') as archive:
-            archive.add(root, arcname=BUNDLE_NAME)
+        with out.open('wb') as target, gzip.GzipFile(filename='', mode='wb', fileobj=target, mtime=0) as compressed:
+            with tarfile.open(fileobj=compressed, mode='w') as archive:
+                archive.add(root, arcname=BUNDLE_NAME, filter=_archive_metadata)
     return out
 
 
