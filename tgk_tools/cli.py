@@ -150,18 +150,32 @@ def run_canvas(args):
                         event=connection.checkevent()
                         if event is None:break
                         if event.type=='back':activity.finish()
-                        elif event.type=='destroy' and event.value.get('finishing'):running=False
+                        elif event.type=='destroy' and event.value.get('finishing'):
+                            running=False
+                            break
                         elif event.type=='touch':
+                            action=event.value.get('action')
+                            if action in ('up','cancel'):
+                                touches=[]
+                                continue
                             raw=event.value.get('pointers',[])
                             if isinstance(raw,dict):raw=[raw]
-                            if raw and isinstance(raw[0],list):raw=raw[-1]
-                            dims=view.getdimensions()
+                            if isinstance(raw,(list,tuple)) and raw and isinstance(raw[-1],(list,tuple)):
+                                raw=raw[-1]
+                            if not isinstance(raw,(list,tuple)):continue
+                            lifted=event.value.get('index') if action=='pointer_up' else None
                             points=[]
-                            for p in raw:
+                            for index,p in enumerate(raw):
+                                if type(lifted) is int and index==lifted:continue
                                 if not isinstance(p,dict):continue
-                                q=canvas.map_touch(p.get('x',-1),p.get('y',-1),dims[0],dims[1])
-                                if q is not None:points.append(q)
+                                try:x,y=float(p['x']),float(p['y'])
+                                except (KeyError,TypeError,ValueError,OverflowError):continue
+                                # ImageView already transforms Android view coordinates
+                                # into the displayed image/buffer pixel space.
+                                if math.isfinite(x) and math.isfinite(y) and 0<=x<w and 0<=y<h:
+                                    points.append((int(x),int(y)))
                             touches=points
+                    if not running:break
                     now=time.monotonic()
                     if now-last<1/args.fps:
                         time.sleep(min(.005,max(0,1/args.fps-(now-last))))

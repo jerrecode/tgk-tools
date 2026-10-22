@@ -96,6 +96,8 @@ Exit codes: success 0, user cancellation/negative confirmation 1, argument/runti
 
 `show --max-chars N` reads at most N+1 Unicode characters before rejecting oversized file/stdin input; it does not read the entire input into memory first. Text/image limits must be positive. Timeouts and demo durations must be finite and non-negative (0 disables the limit). Invalid options fail before opening a GUI. Missing Termux:GUI Python bindings produce installation guidance on stderr and exit 2.
 
+The canvas demo uses ImageView image/buffer pixel coordinates directly, following the [Termux:GUI touch protocol](https://github.com/termux/termux-gui/blob/main/Protocol.md#touch-events). Pink touch markers track the latest batched pointer frame, disappear on release/cancellation, and ignore malformed or out-of-buffer coordinates. Rendering stops when the Activity is destroyed. These behaviors have offline event-loop and C framebuffer regression coverage; touchscreen alignment on Android hardware remains unverified.
+
 ## Developer notes
 
 Tools are in `tgk_tools/cli.py`; native widget, KV and canvas implementations remain upstream in TGK. Do not duplicate TGK internals here. Contributions should preserve the stdout result contract and support piped input. Run `python -m unittest discover -s tests -v` and `python -m compileall -q tgk_tools` before PR submission. Android UI tests and hardware benchmarks must be performed on a device.
