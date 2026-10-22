@@ -288,7 +288,7 @@ def run_doctor(args):
     import json
     import platform
     import importlib.util
-    from .canvas import _lib
+    from tgk.canvas import _lib
     result={'platform':platform.platform(),'python':sys.version.split()[0],
             'termux_detected':'com.termux' in str(Path(sys.executable)) or
              'com.termux' in str(__import__('os').environ.get('PREFIX','')),
