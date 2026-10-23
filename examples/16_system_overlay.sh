@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
-# Requires "Display over other apps" permission in Termux:GUI Android settings.
+# Requires Termux:GUI "Display over other apps" permission.
+# When the Android plugin rejects overlay creation, show a warning and use
+# a normal Activity instead of an opaque TypeError traceback.
 set -eu
-tgk ui-lab --mode overlay --start-page canvas --theme cyberpunk
+exec tgk ui-lab --mode overlay --fallback-normal \
+  --start-page canvas --theme cyberpunk
