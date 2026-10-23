@@ -83,7 +83,7 @@ tgk canvas-demo --width 512 --height 512 --fps 30 --seconds 15
 
 ### Progress file format
 
-A producer should publish complete updates atomically by writing to a separate temporary file and renaming it into place:
+A producer should publish complete updates atomically by writing to a separate temporary file and renaming it into place. The viewer reads at most **1 MiB + 1 byte** per update; oversized or malformed JSON shows a validation error instead of allocating unbounded memory. Non-finite progress values (`NaN`/`Infinity`) are rejected; finite values are clamped to 0–100. Repeated equivalent snapshots do not trigger redundant native progress/text updates:
 
 ```sh
 printf '{"progress":0,"message":"Starting"}\n' > "$TMPDIR/task.json"

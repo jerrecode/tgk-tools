@@ -257,6 +257,47 @@ def run_files(args):
     if selection is None:return 1
     print(selection);return 0
 
+_MAX_PROGRESS_JSON_BYTES = 1_048_576
+
+
+def _read_progress_state(path, max_bytes=_MAX_PROGRESS_JSON_BYTES):
+    """Read a bounded JSON progress snapshot, including during writer races.
+
+    The file may grow between stat and read: read limit+1 bytes directly
+    rather than trusting st_size or loading an arbitrarily large file.
+    """
+    import json
+    with Path(path).open('rb') as source:
+        payload = source.read(max_bytes + 1)
+    if len(payload) > max_bytes:
+        raise ValueError(f'Progress JSON exceeds {max_bytes} byte limit')
+    state = json.loads(payload.decode('utf-8'))
+    if not isinstance(state, dict):
+        raise ValueError('expected JSON object')
+    raw_value = state.get('progress', 0)
+    if isinstance(raw_value, bool):
+        raise ValueError('progress must be a finite number')
+    try:
+        value = float(raw_value)
+    except (ValueError, TypeError, OverflowError) as exc:
+        # Even well-formed JSON numbers (e.g. 400 digits) may overflow float.
+        raise ValueError('progress must be a finite number') from exc
+    if not math.isfinite(value):
+        raise ValueError('progress must be a finite number')
+    message = state.get('message', '')
+    if not isinstance(message, str):
+        raise ValueError('message must be a string')
+    completed = state.get('done', False)
+    if type(completed) is not bool:
+        raise ValueError('done must be a JSON boolean')
+    return max(0.0, min(100.0, value)), message, completed
+
+
+def _progress_completion_since(previous, completed, now):
+    """Start the auto-close delay on completion; reset it after a retry."""
+    return (now if previous is None else previous) if completed else None
+
+
 def run_progress(args):
     import json
     import termuxgui as tg
@@ -279,19 +320,20 @@ def run_progress(args):
             if now>=next_read:
                 next_read=now+0.20
                 try:
-                    text=path.read_text(encoding='utf-8')
-                    if text!=last:
-                        last=text
-                        state=json.loads(text)
-                        if not isinstance(state,dict):raise ValueError('expected JSON object')
-                        value=max(0,min(100,float(state.get('progress',0))))
+                    value,message,completed=_read_progress_state(path)
+                    snapshot=(value,message,completed)
+                    if snapshot!=last:
+                        last=snapshot
                         bar.setprogress(round(value))
-                        info.settext(f"{value:.1f}%  {state.get('message','')}")
-                        if state.get('done') and done_since is None:done_since=now
-                except FileNotFoundError:pass
+                        info.settext(f"{value:.1f}%  {message}")
+                    done_since=_progress_completion_since(done_since, completed, now)
+                except FileNotFoundError:
+                    done_since=None
                 except (ValueError,TypeError) as exc:
+                    done_since=None
                     info.settext(f'Invalid progress file: {exc}')
-            if args.auto_close and done_since is not None and now-done_since>0.8:
+            if (outcome!=124 and args.auto_close and done_since is not None
+                    and now-done_since>0.8):
                 outcome=0;activity.finish()
             event=c.checkevent()
             if event:
