@@ -6,6 +6,7 @@ import json
 from types import SimpleNamespace
 
 from tgk.adaptive import ScreenMetrics,LayoutScale,arrange_spans
+from tgk.sizing import SizeSpec,resolve_size
 from tgk.style_tokens import DEFAULT_STYLES
 from tgk.typography import PRESETS as TYPOGRAPHY
 from tgk.theme import get_theme
@@ -73,6 +74,36 @@ def run_layout_plan(args):
               "unknown unless separately provided")
         for i,(r,c,_,sp) in enumerate(positions):
             print(f"  {i+1:03d}: row={r}, col={c}, span={sp}")
+    return 0
+
+
+def run_size_plan(args):
+    """Pure viewport size preview; never claims physical screen resolution."""
+    from dataclasses import asdict
+    metrics=_metrics_for(args)
+    spec=SizeSpec(
+        width_dp=args.item_width_dp,height_dp=args.item_height_dp,
+        width_fraction=args.item_width_fraction,
+        height_fraction=args.item_height_fraction,
+        min_width_dp=args.min_width_dp,min_height_dp=args.min_height_dp,
+        max_width_dp=args.max_width_dp,max_height_dp=args.max_height_dp,
+        max_width_fraction=args.max_width_fraction,
+        max_height_fraction=args.max_height_fraction,
+        margin_horizontal_dp=args.margin_horizontal_dp,
+        margin_vertical_dp=args.margin_vertical_dp,
+        aspect_ratio=args.aspect_ratio,fit=args.fit)
+    size=resolve_size(spec,metrics,touch_target_dp=args.touch_target_dp,
+                      interactive=args.interactive)
+    payload={"source":"termuxgui" if args.connect else "simulated",
+             "screen":metrics.to_dict(),"spec":asdict(spec),
+             "resolved":asdict(size),"physical_display_metrics_verified":False}
+    if args.json:print(json.dumps(payload,separators=(",",":"),allow_nan=False))
+    else:
+        print("Window (dp): %gx%g • %s" % (
+            metrics.width_dp,metrics.height_dp,metrics.orientation))
+        print("Resolved control (dp): width=%s, height=%s" %
+              (size.width_dp,size.height_dp))
+        print("No physical display resolution, FPS or status bar dimensions inferred.")
     return 0
 
 

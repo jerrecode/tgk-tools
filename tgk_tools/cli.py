@@ -721,6 +721,31 @@ def main(argv=None):
                    help='virtual span units, independent of native columns')
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_layout_plan',args))
+    a=sub.add_parser('size-plan',parents=[theme_flags],
+                     help='viewport-aware dp size constraint preview, offline or connected')
+    a.add_argument('--connect',action='store_true')
+    a.add_argument('--width-dp',type=float)
+    a.add_argument('--height-dp',type=float)
+    a.add_argument('--density',type=float,default=1.0)
+    a.add_argument('--font-scale',type=float,default=1.0)
+    a.add_argument('--item-width-dp',type=float)
+    a.add_argument('--item-height-dp',type=float)
+    a.add_argument('--item-width-fraction',type=float)
+    a.add_argument('--item-height-fraction',type=float)
+    a.add_argument('--min-width-dp',type=float)
+    a.add_argument('--min-height-dp',type=float)
+    a.add_argument('--max-width-dp',type=float)
+    a.add_argument('--max-height-dp',type=float)
+    a.add_argument('--max-width-fraction',type=float)
+    a.add_argument('--max-height-fraction',type=float)
+    a.add_argument('--margin-horizontal-dp',type=float,default=0)
+    a.add_argument('--margin-vertical-dp',type=float,default=0)
+    a.add_argument('--aspect-ratio',type=float)
+    a.add_argument('--fit',choices=('contain','stretch'),default='contain')
+    a.add_argument('--interactive',action='store_true')
+    a.add_argument('--touch-target-dp',type=int,default=48)
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=lambda args:_run_mobile('run_size_plan',args))
     a=sub.add_parser('style-catalog',parents=[theme_flags],
                      help='show preset typography, component geometry and full palette')
     a.add_argument('--json',action='store_true')
@@ -771,6 +796,8 @@ def main(argv=None):
     except (ValueError,OSError) as exc:
         print('tgk:',str(exc),file=sys.stderr)
         return 2
+    if args.command=='size-plan' and args.touch_target_dp<32:
+        p.error('--touch-target-dp must be at least 32')
     if args.command in ('adaptive-demo','layout-plan'):
         for key in ('columns','touch_target_dp','grid_unit_dp'):
             if getattr(args,key) is None:
