@@ -32,6 +32,35 @@ class IconBuildCLITests(unittest.TestCase):
                 self.assertEqual(list((icons/folder).iterdir()),[])
             self.assertEqual(len(json.loads((icons/'manifest.json').read_text())['icons']),2)
 
+    def test_purpose_built_semantic_icons_export_through_tools_cli(self):
+        from xml.etree import ElementTree as ET
+        symbols = ("refresh", "sync", "copy", "cut", "run",
+                   "play", "pause", "stop", "repeat_off", "star_filled")
+        for name in symbols:
+            with self.subTest(name=name):
+                code, source, errors = self.run_cli("icons", "--svg", name)
+                self.assertEqual(code, 0, errors)
+                root = ET.fromstring(source)
+                self.assertEqual(root.get("viewBox"), "0 0 64 64")
+                self.assertNotIn("<text", source)
+                self.assertIn("path", source)
+
+        with tempfile.TemporaryDirectory() as directory:
+            args = ["icons-build", "--output", directory, "--svg-only"]
+            for name in symbols:
+                args.extend(("--icon", name))
+            code, out, err = self.run_cli(*args)
+            self.assertEqual(code, 0, err)
+            self.assertEqual(json.loads(out)["count"], len(symbols))
+            manifest = json.loads((Path(directory) / "icons" /
+                                   "manifest.json").read_text())
+            self.assertGreaterEqual(manifest["geometry_revision"], 2)
+            for name in symbols:
+                data = (Path(directory) / "icons/svg" /
+                        (name + ".svg")).read_text()
+                self.assertNotIn("<text", data)
+                ET.fromstring(data)
+
     def test_explicit_svg_only_overrides_saved_raster_default(self):
         from tgk.config import initialize_config, patch_config, clear_config_cache
         with tempfile.TemporaryDirectory() as root:

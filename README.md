@@ -469,18 +469,38 @@ tgk icons --path README.md --json
 tgk icons --path README.md --detailed --json
 tgk icons --svg filename_readme_md > readme.svg
 
+# Purpose-built operation icons instead of generic three-letter badges
+tgk icons --svg refresh > refresh.svg
+tgk icons --svg sync > sync.svg
+tgk icons --svg run > run.svg
+tgk icons --svg play > play.svg
+
+# Keep catalog build files in a writable Termux-compatible location
+mkdir -p "$HOME/.cache/tgk/icon-pack"
+
 # Build and validate all known SVG combinations before publication
-tgk icons-build --output /tmp --overwrite
+tgk icons-build --output "$HOME/.cache/tgk/icon-pack" --overwrite
 # Limit the build to specific icon recipes
-tgk icons-build --output /tmp --overwrite \
+tgk icons-build --output "$HOME/.cache/tgk/icon-pack" --overwrite \
   --icon file_ext_jsonl --icon filename_agents_md --icon file_document
 
 # Build low/mid/high PNG and JPEG, plus ICO (CairoSVG + Pillow required)
 python -m pip install cairosvg pillow
-tgk icons-build --output /tmp --raster --overwrite
+tgk icons-build --output "$HOME/.cache/tgk/icon-pack" --raster --overwrite
 ```
 
-The output is `/tmp/icons/svg`, `/tmp/icons/ico`,
+The generated file and directory icons retain labels and composable
+silhouettes. Operations, navigation, playback and system controls now use
+purpose-built, self-contained SVG geometry (for example a terminal prompt for
+run, scissors for cut, and conventional play/pause/stop shapes). The same
+vector sources produce optional raster icon packs.
+
+TGK's installation routine refreshes older, manifest-verified and unmodified
+generated icon catalogs. It preserves user-modified or foreign catalogs instead
+of overwriting them. Explicit `icons-build --overwrite` still replaces its
+selected destination, so back up manually edited output first.
+
+The output is `$HOME/.cache/tgk/icon-pack/icons/svg`, `/tmp/icons/ico`,
 `/tmp/icons/low_res`, `/tmp/icons/mid_res`,
 `/tmp/icons/high_res` and `/tmp/icons/manifest.json`. The default
 raster dimensions are 32, 96 and 256 pixels, and ICO contains several
