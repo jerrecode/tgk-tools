@@ -24,6 +24,21 @@ def _paint_object(view,part,args):
             setter=getattr(view,'setbackgroundcolor' if property_name=='background'
                            else 'settextcolor',None)
             if callable(setter):setter(tgui_color(color))
+    fonts=getattr(args,'object_fonts',{}) if args is not None else {}
+    for property_name in ('style','size','family','weight','italic','underline',
+                          'strike','align','line_height','role'):
+        value=fonts.get((part,property_name),fonts.get(('*',property_name)))
+        if value is None:continue
+        if hasattr(view,'_native'):
+            fields={'style':'text_style','size':'text_size','family':'font_family',
+                    'weight':'font_weight','role':'font_color_role',
+                    'align':'text_align'}
+            setattr(view,fields.get(property_name,property_name),value)
+        elif property_name=='size':
+            setter=getattr(view,'settextsize',None)
+            if callable(setter):setter(int(value))
+        # Termux:GUI's native TextView protocol has no font face/bold/italic
+        # setter; these are fully effective only with RichTextLabel WebView.
     return view
 
 
@@ -473,7 +488,44 @@ def _configure_theme(args,parser):
             if not role.strip():raise ValueError("--color requires a role")
             overrides[role.strip()]=value.strip()
         set_theme(chosen,**overrides)
+        from tgk.typography import resolve_text_style,set_text_style,PRESETS as FONT_PRESETS
         from tgk.theme import normalize_color
+        style_options={}
+        for field,arg_name in (("family","font_family"),("size","font_size"),
+                               ("weight","font_weight"),("role","font_color_role"),
+                               ("align","text_align"),("line_height","line_height")):
+            value=getattr(args,arg_name)
+            if value is not None:style_options[field]=value
+        for flag in ("italic","underline","strike"):
+            if getattr(args,flag):style_options[flag]=True
+        set_text_style(args.text_style,**style_options)
+        args.object_fonts={}
+        allowed={"root","heading","input","button","cancel","image",
+                 "canvas","progress","*"}
+        fields={"style","size","family","weight","italic","underline",
+                "strike","align","line_height","role"}
+        for item in args.object_font:
+            if "=" not in item or "." not in item.split("=",1)[0]:
+                raise ValueError("--object-font requires TARGET.FIELD=VALUE")
+            targetfield,raw=item.split("=",1)
+            target,field=targetfield.rsplit(".",1)
+            if target not in allowed or field not in fields:
+                raise ValueError("unknown --object-font target/field")
+            if field=="style":
+                resolve_text_style(raw)
+                val=raw
+            elif field in ("size","weight"):
+                val=int(raw)
+            elif field=="line_height":
+                val=float(raw)
+            elif field in ("italic","underline","strike"):
+                if raw.lower() not in ("true","false","1","0"):
+                    raise ValueError("boolean object font values must be true/false")
+                val=raw.lower() in ("true","1")
+            else:val=raw
+            # Use TextStyle's validator for each override.
+            if field!="style":resolve_text_style("body",**{field:val})
+            args.object_fonts[(target,field)]=val
         target_types={'root','heading','input','button','cancel','image','canvas','progress','*'}
         args.object_colors={}
         for item in args.object_color:
@@ -488,6 +540,7 @@ def _configure_theme(args,parser):
         parser.error(str(exc))
 
 def main(argv=None):
+    from tgk_tools.advanced_ui import run_icons,run_typography,run_lab
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
     theme_flags=argparse.ArgumentParser(add_help=False)
@@ -498,6 +551,19 @@ def main(argv=None):
     theme_flags.add_argument('--object-color',action='append',default=[],
                              metavar='TARGET.PROPERTY=#HEX',
                              help='Override native root/heading/input/button/cancel/... .text or .background')
+    theme_flags.add_argument('--text-style',default='body',help='Typography preset')
+    theme_flags.add_argument('--font-family',choices=('sans','serif','mono'))
+    theme_flags.add_argument('--font-size',type=int)
+    theme_flags.add_argument('--font-weight',type=int)
+    theme_flags.add_argument('--italic',action='store_true')
+    theme_flags.add_argument('--underline',action='store_true')
+    theme_flags.add_argument('--strike',action='store_true')
+    theme_flags.add_argument('--font-color-role')
+    theme_flags.add_argument('--text-align',choices=('left','center','right','justify'))
+    theme_flags.add_argument('--line-height',type=float)
+    theme_flags.add_argument('--object-font',action='append',default=[],
+                             metavar='TARGET.FIELD=VALUE',
+                             help='Named per-view text styling (size/style/family/weight/role/...)')
     a=sub.add_parser('prompt',parents=[theme_flags],help='prompt for text; prints answer');a.add_argument('--title');a.add_argument('--default',default='');a.add_argument('--password',action='store_true');a.add_argument('--multiline',action='store_true');a.set_defaults(run=run_prompt)
     a=sub.add_parser('confirm',parents=[theme_flags],help='yes/no choice; exit status 0=yes, 1=no');a.add_argument('message');a.add_argument('--title');a.set_defaults(run=run_confirm)
     a=sub.add_parser('choose',parents=[theme_flags],help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append');a.set_defaults(run=run_choose)
@@ -512,6 +578,23 @@ def main(argv=None):
     a=sub.add_parser('demo',parents=[theme_flags],help='run 16 graduated UI and theme studio labs')
     a.add_argument('--scenario',default='12_studio',help='scenario code, see --list')
     a.add_argument('--list',action='store_true');a.set_defaults(run=run_demo)
+    a=sub.add_parser('icons',parents=[theme_flags],help='semantic icons and file type resolver')
+    a.add_argument('--json',action='store_true')
+    a.add_argument('--category',choices=('files','directories','actions','media','view','navigation'))
+    a.add_argument('--path')
+    a.add_argument('--directory',action='store_true')
+    a.add_argument('--svg')
+    a.add_argument('--svg-size',type=int,default=24)
+    a.add_argument('--svg-color',default='#FFFFFF')
+    a.set_defaults(run=run_icons)
+    a=sub.add_parser('typography',parents=[theme_flags],help='list or preview text presets')
+    a.add_argument('--json',action='store_true')
+    a.add_argument('--preview',action='store_true')
+    a.set_defaults(run=run_typography)
+    a=sub.add_parser('ui-lab',parents=[theme_flags],help='tabs, popup, icons, rich text and canvas')
+    a.add_argument('--mode',choices=('normal','dialog','overlay'),default='normal')
+    a.add_argument('--start-page',choices=('home','icons','text','canvas','screens'),default='home')
+    a.set_defaults(run=run_lab)
     args=p.parse_args(argv)
     _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
@@ -524,6 +607,10 @@ def main(argv=None):
         p.error('canvas dimensions must be positive and at most 4194304 pixels')
     if args.command=='files' and not 1<=args.max_items<=500:p.error('--max-items must be in 1..500')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
+    if args.command=='icons' and args.svg and (args.path or args.category):
+        p.error('Use --svg separately from --path or --category')
+    if args.command=='icons' and args.path and args.category:
+        p.error('Use --path separately from --category')
     try:return args.run(args)
     except ModuleNotFoundError as exc:
         if exc.name!='termuxgui':raise
