@@ -31,10 +31,15 @@ def _metrics_for(args):
 def run_layout_plan(args):
     metrics=_metrics_for(args)
     from tgk.config import configured_layout_scale
-    planner=replace(configured_layout_scale(),
-                    columns=args.columns,
-                    grid_unit_dp=args.grid_unit_dp,
-                    touch_target_dp=args.touch_target_dp)
+    saved=configured_layout_scale()
+    # An omitted flag inherits the persisted preset value. Passing None to
+    # LayoutScale broke the basic "tgk layout-plan --width-dp ... --height-dp ..."
+    # command because optional CLI arguments default to None.
+    overrides={}
+    for field in ("columns","grid_unit_dp","touch_target_dp"):
+        value=getattr(args,field,None)
+        if value is not None:overrides[field]=value
+    planner=replace(saved,**overrides)
     cols=planner.columns
     logical=args.span_units
     children=[]
@@ -52,9 +57,13 @@ def run_layout_plan(args):
             children.append(SimpleNamespace(
                 span_compact=logical,span_medium=max(1,(logical+1)//2),
                 span_expanded=max(1,(logical+2)//3)))
-    positions=arrange_spans(children,columns=cols,span_units=logical,metrics=metrics)
+    actual_size_class=planner.size_class(metrics)
+    positions=arrange_spans(children,columns=cols,span_units=logical,
+                            metrics=metrics,size_class=actual_size_class)
+    screen=metrics.to_dict()
+    screen["size_class"]=actual_size_class
     result={"source":"termuxgui" if args.connect else "simulated",
-            "screen":metrics.to_dict(),
+            "screen":screen,
             "grid":{"columns":cols,"span_units":logical,
                     "unit_dp":planner.grid_unit_dp,
                     "touch_target_dp":planner.touch_target_dp,
@@ -67,7 +76,7 @@ def run_layout_plan(args):
         print(json.dumps(result,separators=(",",":")))
     else:
         print(f"{result['source']} window: {metrics.width_dp:g}x{metrics.height_dp:g}dp "
-              f"({metrics.orientation}, {metrics.size_class})")
+              f"({metrics.orientation}, {actual_size_class})")
         print(f"Grid: {cols} native columns, {logical} logical units; "
               f"touch minimum {planner.touch_target_dp}dp")
         print("Hardware max FPS / physical resolution / depth / system insets: "
