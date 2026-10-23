@@ -15,7 +15,7 @@ def _atomic_persist(selected):
     value=validate_config(selected)
     path=config_path()
     if path.is_symlink():raise ValueError("refusing to overwrite a config symlink")
-    data=(json.dumps(selected,ensure_ascii=False,indent=2,sort_keys=True)+"\\n").encode("utf-8")
+    data=(json.dumps(selected,ensure_ascii=False,indent=2,sort_keys=True)+"\n").encode("utf-8")
     if len(data)>MAX_JSON_BYTES:raise ValueError("configuration size limit exceeded")
     path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
     fd,tmp=tempfile.mkstemp(prefix=".tgk-config-",dir=path.parent)
