@@ -605,9 +605,14 @@ def _run_icons_build(args):
     output=Path(args.output).expanduser()/'icons'
     if output.exists() and not args.overwrite:
         raise FileExistsError(f'icon output already exists: {output}; use --overwrite to replace')
+    from tgk.config import get_config
+    configured=get_config()["icons"]
     result=build_assets(args.output,names=args.icon,raster=args.raster,
-                        overwrite=args.overwrite,low=args.low,mid=args.mid,
-                        high=args.high,max_icons=args.max_icons)
+                        overwrite=args.overwrite,
+                        low=args.low if args.low is not None else configured["low_res"],
+                        mid=args.mid if args.mid is not None else configured["mid_res"],
+                        high=args.high if args.high is not None else configured["high_res"],
+                        max_icons=args.max_icons if args.max_icons is not None else configured["max_icons"])
     print(json.dumps(result,sort_keys=True,separators=(',',':')))
     return 0
 
@@ -675,10 +680,10 @@ def main(argv=None):
                    help='generate raster variants; requires optional CairoSVG + Pillow')
     a.add_argument('--overwrite',action='store_true',
                    help='replace an existing icon pack only after successful staging')
-    a.add_argument('--low',type=int,default=32)
-    a.add_argument('--mid',type=int,default=96)
-    a.add_argument('--high',type=int,default=256)
-    a.add_argument('--max-icons',type=int,default=1500)
+    a.add_argument('--low',type=int,default=None)
+    a.add_argument('--mid',type=int,default=None)
+    a.add_argument('--high',type=int,default=None)
+    a.add_argument('--max-icons',type=int,default=None)
     a.set_defaults(run=_run_icons_build)
     a=sub.add_parser('typography',parents=[theme_flags],help='list or preview text presets')
     a.add_argument('--json',action='store_true')
