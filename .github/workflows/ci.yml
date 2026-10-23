@@ -13,6 +13,11 @@ jobs:
       - name: Install framework from default branch
         run: |
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
+          if [ "${{ github.head_ref }}" = "feature/persistent-config-cli-20261023" ] || \
+             [ "${{ github.ref_name }}" = "feature/persistent-config-cli-20261023" ]; then
+            git -C /tmp/tgk fetch --depth=1 origin feature/persistent-config-presets-20261023
+            git -C /tmp/tgk checkout FETCH_HEAD
+          fi
           make -C /tmp/tgk build
           python -m pip install --no-deps /tmp/tgk
       - name: Install tools
@@ -30,12 +35,12 @@ jobs:
           tgk --help
           tgk doctor --json
       - name: Build offline source installer archive
-        run: python scripts/build_bundle.py --tgk-source /tmp/tgk --out tgk_bundle_v0.5.0.tar.gz
+        run: python scripts/build_bundle.py --tgk-source /tmp/tgk --out tgk_bundle_v0.6.0.tar.gz
       - name: Verify offline archive installation after deleting extracted sources
-        run: python scripts/check_bundle_install.py tgk_bundle_v0.5.0.tar.gz
+        run: python scripts/check_bundle_install.py tgk_bundle_v0.6.0.tar.gz
       - name: Upload downloadable source installer
         uses: actions/upload-artifact@v4
         with:
           name: tgk-offline-installer
-          path: tgk_bundle_v0.5.0.tar.gz
+          path: tgk_bundle_v0.6.0.tar.gz
           if-no-files-found: error
