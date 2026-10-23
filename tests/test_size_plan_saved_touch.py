@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 from tgk_tools.cli import main
-from tgk.config import init_config,patch_config,clear_config_cache
+from tgk.config import initialize_config,patch_config,clear_config_cache
 
 class SizePlanSettingsTests(unittest.TestCase):
     def setUp(self):
@@ -17,7 +17,7 @@ class SizePlanSettingsTests(unittest.TestCase):
         self.config_patch=patch.dict(os.environ,{'TGK_CONFIG_HOME':self.temp.name})
         self.config_patch.start()
         self.addCleanup(self.config_patch.stop)
-        init_config()
+        initialize_config()
         patch_config({'layout':{'touch_target_dp':64}})
         self.addCleanup(clear_config_cache)
 
