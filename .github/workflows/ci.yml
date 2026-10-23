@@ -13,12 +13,6 @@ jobs:
       - name: Install framework from default branch
         run: |
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
-          # Verify this dependent PR against its TGK core advanced-UI PR while
-          # that API is pending. Remove this conditional after core merge.
-          if [ "${{ github.head_ref }}" = "feature/advanced-ui-typography-icons-20261023" ]; then
-            git -C /tmp/tgk fetch --depth=1 origin feature/navigation-windows-typography-icons-20261023
-            git -C /tmp/tgk checkout FETCH_HEAD
-          fi
           make -C /tmp/tgk build
           python -m pip install --no-deps /tmp/tgk
       - name: Install tools
