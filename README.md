@@ -254,6 +254,58 @@ streaming and format-specific processors; no broad protocol support or
 full media playback is claimed. Benchmarks and power use on Android remain
 to be measured.
 
+## Responsive Android UI and design-system CLI (TGK 0.4.0)
+
+The new commands expose a **12-column Android window-dp grid**, extended
+component palettes, typography hierarchy, styled tables and configurable
+per-Activity touch minima. `layout-plan` can run without Android.
+
+```sh
+tgk layout-plan --width-dp 393 --height-dp 852 --items 8 --json
+tgk layout-plan --width-dp 920 --height-dp 430 --spans 12,6,4 --json
+tgk layout-plan --connect --json     # Termux:GUI's actual window configuration
+tgk style-catalog --theme ocean --json
+tgk adaptive-demo --theme forest --orientation system --touch-target-dp 56
+tgk adaptive-demo --orientation landscape --grid-unit-dp 8
+```
+
+Window metrics have width/height dp, logical aspect, orientation, density
+and font scale. Android Activity `getconfiguration()` supplies **window**
+dimensions. Hardware maximum refresh rate, physical maximum pixel
+resolution, screen color depth and explicit status-bar inset measurements
+are **not available through this binding**; the JSON reports `null`,
+never guessed numbers. Normal Android Activities already get a content
+viewport below system chrome, so no extra hard-coded status bar offset is
+applied. Adaptive spans change on Android `config` events via native
+`setgridlayoutparams`, without rebuilding the view tree.
+
+The `--spans COMPACT,MEDIUM,EXPANDED` option may be repeated to define
+each item's spans (integers 1–12); otherwise defaults are 12, 6 and 4.
+Breakpoints are compact (<600dp), medium (600–839dp), expanded (>=840dp).
+`--grid-unit-dp` sets spacing increments and
+`--touch-target-dp` changes the interactive minimum for that Activity.
+The default is 48dp; smaller than 32dp is rejected by the CLI.
+
+`style-catalog` prints all current semantic theme colors (including
+button pressed/active/inactive, tab active/inactive, table striping,
+selection, input, dropdown, panel and navigation backgrounds), typography
+presets and component geometry. Each predefined theme includes the same
+roles, with color variants derived from the theme's base colors.
+Styles can still be overridden for individual objects in Python.
+Native Android Views do not support all declarative styling fields:
+fully styled row/column borders, backgrounds and text weight are
+available in TGK's local `RichTable` WebView.
+
+The advanced sample scripts include:
+`examples/22_adaptive_layout_plan.sh`,
+`examples/23_android_screen_metrics.sh`,
+`examples/24_responsive_mobile_demo.sh`, and
+`examples/25_component_style_catalog.sh`.
+
+Hardware touch and orientation behavior must be checked on a real Android
+device. Linux CI verifies API semantics, geometry calculations, model
+reflow and installability, not native graphical fidelity.
+
 ## Shell commands
 
 ```sh
