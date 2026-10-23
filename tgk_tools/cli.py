@@ -417,7 +417,7 @@ def run_progress(args):
             if now>=next_read:
                 next_read=now+0.20
                 try:
-                    value,message,completed=_read_progress_state(path)
+                    value,message,completed=_read_progress_state(path,args.max_progress_json_bytes)
                     snapshot=(value,message,completed)
                     if snapshot!=last:
                         last=snapshot
@@ -505,9 +505,9 @@ def run_demo(args):
 
 def _configure_theme(args,parser):
     """Select preset/file first; command-line role overrides have final precedence."""
-    from tgk.theme import load_theme,resolve_theme,set_theme
+    from tgk.theme import load_theme,resolve_theme,set_theme,get_theme
     try:
-        chosen=load_theme(args.theme_file) if args.theme_file else resolve_theme()
+        chosen=load_theme(args.theme_file) if args.theme_file else get_theme()
         if args.theme:chosen=resolve_theme(args.theme)
         overrides={}
         for item in args.color:
@@ -526,7 +526,8 @@ def _configure_theme(args,parser):
             if value is not None:style_options[field]=value
         for flag in ("italic","underline","strike"):
             if getattr(args,flag):style_options[flag]=True
-        set_text_style(args.text_style,**style_options)
+        from tgk.typography import get_text_style
+        set_text_style(args.text_style or get_text_style(),**style_options)
         args.object_fonts={}
         allowed={"root","heading","input","button","cancel","image",
                  "canvas","progress","*"}
@@ -623,7 +624,8 @@ def main(argv=None):
     theme_flags.add_argument('--object-color',action='append',default=[],
                              metavar='TARGET.PROPERTY=#HEX',
                              help='Override native root/heading/input/button/cancel/... .text or .background')
-    theme_flags.add_argument('--text-style',default='body',help='Typography preset')
+    theme_flags.add_argument('--text-style',default=None,
+                             help='Typography preset (default: saved TGK config)')
     theme_flags.add_argument('--font-family',choices=('sans','serif','mono'))
     theme_flags.add_argument('--font-size',type=int)
     theme_flags.add_argument('--font-weight',type=int)
@@ -641,10 +643,10 @@ def main(argv=None):
     a=sub.add_parser('choose',parents=[theme_flags],help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append');a.set_defaults(run=run_choose)
     a=sub.add_parser('show',parents=[theme_flags],help='read text file or piped input in native scroll view');a.add_argument('file');a.add_argument('--title');a.add_argument('--max-chars',type=int,default=100_000);a.set_defaults(run=run_show)
     a=sub.add_parser('image',parents=[theme_flags],help='PNG/JPG native image viewer');a.add_argument('file');a.add_argument('--max-bytes',type=int,default=24_000_000);a.set_defaults(run=run_image)
-    a=sub.add_parser('files',parents=[theme_flags],help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=150);a.add_argument('--icons',action='store_true',help='show semantic file/folder symbols');a.set_defaults(run=run_files)
+    a=sub.add_parser('files',parents=[theme_flags],help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=None);a.add_argument('--icons',action='store_true',help='show semantic file/folder symbols');a.set_defaults(run=run_files)
     a=sub.add_parser('progress',parents=[theme_flags],help='watch a JSON progress file and display a native progress bar');a.add_argument('file');a.add_argument('--title');a.add_argument('--auto-close',action='store_true');a.add_argument('--timeout',type=float,default=0);a.set_defaults(run=run_progress)
     a=sub.add_parser('doctor',parents=[theme_flags],help='inspect Termux:GUI/C runtime; --connect checks actual IPC');a.add_argument('--connect',action='store_true');a.add_argument('--json',action='store_true');a.set_defaults(run=run_doctor)
-    a=sub.add_parser('canvas-demo',parents=[theme_flags],help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=25);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
+    a=sub.add_parser('canvas-demo',parents=[theme_flags],help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=None);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
     a=sub.add_parser('themes',parents=[theme_flags],help='list theme presets and semantic roles')
     a.add_argument('--json',action='store_true');a.set_defaults(run=run_themes)
     a=sub.add_parser('demo',parents=[theme_flags],help='run 16 graduated UI and theme studio labs')
@@ -665,14 +667,14 @@ def main(argv=None):
                      help='atomic layered SVG/PNG/JPG/ICO pack generator')
     a.add_argument('--output',default='.',help='parent directory for icons/')
     a.add_argument('--icon',action='append',help='specific named recipe; repeatable')
-    a.add_argument('--raster',action='store_true',
+    a.add_argument('--raster',action='store_true',default=None,
                    help='generate raster variants; requires optional CairoSVG + Pillow')
     a.add_argument('--overwrite',action='store_true',
                    help='replace an existing icon pack only after successful staging')
-    a.add_argument('--low',type=int,default=32)
-    a.add_argument('--mid',type=int,default=96)
-    a.add_argument('--high',type=int,default=256)
-    a.add_argument('--max-icons',type=int,default=1500)
+    a.add_argument('--low',type=int,default=None)
+    a.add_argument('--mid',type=int,default=None)
+    a.add_argument('--high',type=int,default=None)
+    a.add_argument('--max-icons',type=int,default=None)
     a.set_defaults(run=_run_icons_build)
     a=sub.add_parser('typography',parents=[theme_flags],help='list or preview text presets')
     a.add_argument('--json',action='store_true')
@@ -728,7 +730,31 @@ def main(argv=None):
     a.add_argument('--samples',type=int,default=3)
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=_run_benchmark_lazily)
+    a=sub.add_parser('config',help='inspect, initialize and validate editable TGK settings')
+    a.add_argument('action',nargs='?',default='show',
+                   choices=('show','init','path','validate','palette','typography','options'))
+    a.add_argument('name',nargs='?',help='preset name for palette/typography/options')
+    a.add_argument('--compact',action='store_true',help='single-line machine-readable JSON')
+    from tgk_tools.config_cli import run_config
+    a.set_defaults(run=run_config)
     args=p.parse_args(argv)
+    # A broken config must not prevent recovery through tgk config init/path.
+    if args.command=='config':
+        try:return args.run(args)
+        except (RuntimeError,ValueError,OSError) as exc:
+            print('tgk:',str(exc),file=sys.stderr);return 2
+    from tgk.config import load_config
+    settings=load_config()
+    if args.command=='files' and args.max_items is None:
+        args.max_items=settings['tools']['max_file_items']
+    if args.command=='canvas-demo' and args.fps is None:
+        args.fps=settings['tools']['canvas_fps']
+    if args.command=='progress' and args.max_progress_json_bytes is None:
+        args.max_progress_json_bytes=settings['tools']['max_progress_json_bytes']
+    if args.command=='icons-build':
+        for name in ('low','mid','high','max_icons'):
+            if getattr(args,name) is None:setattr(args,name,settings['icons'][name])
+        if args.raster is None:args.raster=settings['icons']['raster']
     _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
     if args.command=='image' and args.max_bytes<=0:p.error('--max-bytes must be positive')
