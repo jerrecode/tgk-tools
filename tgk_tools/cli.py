@@ -578,6 +578,11 @@ def _configure_theme(args,parser):
     except (ValueError,OSError) as exc:
         parser.error(str(exc))
 
+def _run_workflow_lazily(args):
+    from tgk_tools.example_workflow import run_workflow
+    return run_workflow(args)
+
+
 def _run_pipeline_lazily(args):
     # Do not break existing shell commands while a user's older TGK core is
     # awaiting upgrade; only the new pipeline operation needs the new API.
@@ -668,6 +673,11 @@ def main(argv=None):
     a.add_argument('--gallery',action='store_true',
                    help='choose and switch demos inside one Termux:GUI Activity')
     a.set_defaults(run=run_demo)
+    a=sub.add_parser('workflow',parents=[theme_flags],
+                     help='one-Activity project prompt and demo-mode navigator')
+    a.add_argument('--project',default='Termux lab',
+                   help='initial editable project name (max 256 characters)')
+    a.set_defaults(run=_run_workflow_lazily)
     a=sub.add_parser('icons',parents=[theme_flags],help='semantic icons and file type resolver')
     a.add_argument('--json',action='store_true')
     a.add_argument('--category',choices=('files','directories','actions','media','view','navigation'))
