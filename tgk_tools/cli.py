@@ -314,7 +314,7 @@ def run_files(args):
                 tg.TextView(activity,f'Cannot read directory: {exc}',listbox)
                 return
             for path,is_dir in entries:
-                if args.icons:
+                if getattr(args,'icons',False):
                     from tgk.icons import glyph,icon_for_path
                     prefix=glyph(icon_for_path(path,is_dir=is_dir))+' '
                 else:
