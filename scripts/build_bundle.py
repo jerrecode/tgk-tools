@@ -84,6 +84,8 @@ def build(tgk: Path, tools: Path, out: Path) -> Path:
     # Canonicalize only the parent: retain the final-component symlink check
     # while recognizing '..' and directory aliases when excluding old output.
     out = out.parent.resolve()/out.name
+    if out.is_symlink():
+        raise ValueError('Refuse symlink archive output')
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='tgk-bundle-') as temp:
         root = Path(temp) / BUNDLE_NAME
