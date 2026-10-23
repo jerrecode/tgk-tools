@@ -385,6 +385,43 @@ validated. A GitHub Actions workflow provides a complete downloadable
 `tgk-layered-icon-pack` asset artifact; device raster quality remains
 subject to font/rendering differences.
 
+## Persistent defaults, editable presets and installation (TGK 0.6.0)
+
+Both `sh ~/tgk/install.sh --copy` and `sh ~/tgk/tgk-tools/install.sh`
+now initialize the same user configuration and all bundled catalogs safely.
+
+```sh
+tgk config init                              # only create missing files
+tgk config show --json                       # all validated core settings
+tgk config presets --json                    # available presets/styles
+tgk config set defaults.theme ocean
+tgk config set defaults.text_style terminal
+tgk config set layout.touch_target_dp 56
+tgk config set layout.grid_unit_dp 8
+tgk config set backend.clock_callbacks_per_tick 64
+tgk config set io.workers 2
+tgk config set window.orientation system
+```
+
+The default location is `~/.config/tgk` (respecting
+`$TGK_CONFIG_DIR` and `$XDG_CONFIG_HOME`). The installer creates
+`config.json`, one editable JSON under `palettes/` per theme, one
+under `typography/` per text preset, and `options/` files for
+layout, backend, I/O, icons, window and component styles. Initialization
+never overwrites existing files: customized presets survive upgrades.
+
+The precedence is: per-object overrides, explicit CLI or App arguments,
+process-selected presets, saved default preset, then bundled factory
+defaults. A `--theme paper` or `--text-style code` overrides the
+saved default *for that command only*. New `tgk App()` instances
+automatically use the saved defaults. Existing running GUI activities
+read backend timing configuration at startup; restart to apply changes.
+Invalid settings are rejected without replacing `config.json`.
+
+The `options/` component files are editable style templates; system
+defaults are controlled by `config.json`. As with all generated
+icon palettes, user-owned files are never overwritten on reinstallation.
+
 ## Shell commands
 
 ```sh
