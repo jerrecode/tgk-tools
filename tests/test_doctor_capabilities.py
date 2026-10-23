@@ -5,6 +5,8 @@ import json
 import unittest
 
 from tgk_tools.cli import main
+import tgk
+import tgk_tools
 
 
 class DoctorCapabilityTests(unittest.TestCase):
@@ -14,8 +16,8 @@ class DoctorCapabilityTests(unittest.TestCase):
             code=main(['doctor','--json'])
         self.assertEqual(code,0)
         info=json.loads(output.getvalue())
-        self.assertEqual(info['tgk_version'],'0.3.0')
-        self.assertEqual(info['tgk_tools_version'],'0.3.0')
+        self.assertEqual(info['tgk_version'],tgk.__version__)
+        self.assertEqual(info['tgk_tools_version'],tgk_tools.__version__)
         self.assertTrue(info['native_view_id_dispatch'])
         self.assertTrue(info['bounded_io_available'])
         self.assertIn('ffmpeg_executable',info)
