@@ -23,6 +23,41 @@ If GitHub repositories are cloned side-by-side in `~/tgk` and `~/tgk-tools`, `sh
 
 To install the framework directly without retaining the source checkout, run `sh ./install.sh --copy` inside `tgk`. Keep the Termux:GUI Android plugin installed and compatible with your Termux app. For an initial connection diagnostic, run `tgk doctor --connect`; for an offline check of just the C renderer run `tgk doctor --json`.
 
+## Update an existing installation
+
+For existing checkouts, update **the framework first**, followed by the
+shell tools. This ensures the required TGK API is present before the tools
+installer checks its dependencies:
+
+```sh
+cd ~/tgk
+git switch main
+git pull --ff-only
+sh ./install.sh --copy
+
+cd ~/tgk/tgk-tools
+git switch main
+git pull --ff-only
+sh ./install.sh --copy
+
+tgk doctor --connect
+tgk config show
+tgk size-plan --width-dp 393 --height-dp 852 --interactive --json
+```
+
+If the tools live in `~/tgk-tools`, replace the second `cd` with that
+location. If you do not have a retained source checkout, clone the latest
+repositories first, or use a recent successfully verified offline installer.
+`--copy` installs durable non-editable packages, so deleting the checkouts
+afterwards does not break Python import paths. The TGK installer fills in
+missing config/preset files but **does not overwrite user-customized**
+palettes, styles, option profiles or `config.json`. Inspect `git status`
+before updating dirty or diverged branches; do not force-reset local work.
+
+For an isolated installation use `PYTHON=/path/to/python sh ./install.sh --copy`
+consistently for both repositories. `tgk doctor --connect` checks real
+Termux:GUI IPC, while other commands can be tested on Linux without a GUI.
+
 ## Downloadable offline installer archive
 
 The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.5.tar.gz` archive from a successful workflow run, then on Termux:
