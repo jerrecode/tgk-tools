@@ -736,14 +736,27 @@ def main(argv=None):
     a.set_defaults(run=_run_benchmark_lazily)
     a=sub.add_parser('config',help='inspect, initialize and validate editable TGK settings')
     a.add_argument('action',nargs='?',default='show',
-                   choices=('show','init','path','validate','palette','typography','options'))
+                   choices=('show','init','path','validate','palette','typography','options',
+                            'list','set'))
     a.add_argument('name',nargs='?',help='preset name for palette/typography/options')
+    a.add_argument('--palette',help='persist this default palette')
+    a.add_argument('--typography',help='persist this default typography preset')
+    a.add_argument('--options',help='apply a named option profile as saved defaults')
+    a.add_argument('--orientation',choices=('system','portrait','landscape'))
+    a.add_argument('--window-mode',choices=('normal','dialog','overlay'))
     a.add_argument('--compact',action='store_true',help='single-line machine-readable JSON')
     from tgk_tools.config_cli import run_config
     a.set_defaults(run=run_config)
     args=p.parse_args(argv)
     # A broken config must not prevent recovery through tgk config init/path.
     if args.command=='config':
+        changes=(args.palette,args.typography,args.options,args.orientation,args.window_mode)
+        if args.action=='set' and not any(v is not None for v in changes):
+            p.error('tgk config set requires at least one default flag')
+        if args.action!='set' and any(v is not None for v in changes):
+            p.error('default selection flags require tgk config set')
+        if args.name is not None and args.action not in ('palette','typography','options'):
+            p.error('NAME is only used by palette/typography/options inspection')
         try:return args.run(args)
         except (RuntimeError,ValueError,OSError) as exc:
             print('tgk:',str(exc),file=sys.stderr);return 2
