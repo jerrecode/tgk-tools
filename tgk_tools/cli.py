@@ -576,6 +576,11 @@ def _run_lab_lazily(args):
     return run_lab(args)
 
 
+def _run_mobile(name,args):
+    from tgk_tools import mobile_ui
+    return getattr(mobile_ui,name)(args)
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
@@ -645,6 +650,31 @@ def main(argv=None):
     a.add_argument('--allow-host',action='append',default=[],
                    help='optional HTTPS hostname allowlist (repeatable)')
     a.set_defaults(run=_run_pipeline_lazily)
+    a=sub.add_parser('layout-plan',parents=[theme_flags],
+                     help='12-column responsive layout plan; optional live Android window metrics')
+    a.add_argument('--connect',action='store_true',
+                   help='read real window configuration from Termux:GUI')
+    a.add_argument('--width-dp',type=float,help='window width for offline simulation')
+    a.add_argument('--height-dp',type=float,help='window height for offline simulation')
+    a.add_argument('--density',type=float,default=1.0)
+    a.add_argument('--font-scale',type=float,default=1.0)
+    a.add_argument('--items',type=int,default=8)
+    a.add_argument('--spans',action='append',default=[],
+                   metavar='COMPACT,MEDIUM,EXPANDED')
+    a.add_argument('--touch-target-dp',type=int,default=48)
+    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=lambda args:_run_mobile('run_layout_plan',args))
+    a=sub.add_parser('style-catalog',parents=[theme_flags],
+                     help='show preset typography, component geometry and full palette')
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=lambda args:_run_mobile('run_style_catalog',args))
+    a=sub.add_parser('adaptive-demo',parents=[theme_flags],
+                     help='launch window-aware 12-column grid and rich table lab')
+    a.add_argument('--orientation',choices=('system','portrait','landscape'),default='system')
+    a.add_argument('--touch-target-dp',type=int,default=48)
+    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.set_defaults(run=lambda args:_run_mobile('run_adaptive_demo',args))
     args=p.parse_args(argv)
     _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
@@ -657,6 +687,11 @@ def main(argv=None):
         p.error('canvas dimensions must be positive and at most 4194304 pixels')
     if args.command=='files' and not 1<=args.max_items<=500:p.error('--max-items must be in 1..500')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
+    if args.command in ('adaptive-demo','layout-plan'):
+        if args.touch_target_dp<32 or args.grid_unit_dp<1:
+            p.error('touch target must be >=32dp and grid unit must be >=1dp')
+        if args.command=='layout-plan' and not 0<=args.items<=2000:
+            p.error('--items must be in 0..2000')
     if args.command=='pipeline':
         if args.operation in ('copy','download') and not args.target:
             p.error('pipeline '+args.operation+' requires TARGET')
