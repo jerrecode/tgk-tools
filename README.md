@@ -25,20 +25,20 @@ To install the framework directly without retaining the source checkout, run `sh
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.3.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.4.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.3.tar.gz
-cd tgk_bundle_v0.6.3
+tar -xzf tgk_bundle_v0.6.4.tar.gz
+cd tgk_bundle_v0.6.4
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.3.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.4.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.3.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.4.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -570,3 +570,19 @@ are enforced on TGK native widgets, while `allow_small_touch_target=True`
 explicitly opts out for specialized controls. Hardware FPS, physical display
 size and system-bar insets remain unknown unless a supported Android API
 provides them.
+
+## Durable TGK Tools installation (0.6.4)
+
+`sh ./install.sh` now installs TGK Tools as a **self-contained copy** by
+default. The source checkout can be moved or removed afterwards, and the
+`tgk`/`tgk-tools` executables will still load from site-packages. For
+active development, use `sh ./install.sh --editable` to link imports to
+the repository instead. `--copy` selects the durable mode explicitly and
+`--help` displays usage; unknown options fail before modifying anything.
+
+The offline source bundle continues compiling the TGK C renderer for the
+installation device and checking the resulting non-editable installation in
+a disposable environment. A green Linux bundle check confirms Python and C
+packaging, **not** Termux:GUI Android service compatibility or touch/render
+accuracy. Existing user-modified `~/.config/tgk` presets are initialized in
+create-only mode and are not overwritten.
