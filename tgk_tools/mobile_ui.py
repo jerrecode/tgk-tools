@@ -104,3 +104,40 @@ def run_adaptive_demo(args):
                     layout_scale=scale,orientation_mode=args.orientation)
     app.run()
     return 0
+
+
+def run_size_plan(args):
+    """Preview TGK's actual opt-in SizeSpec resolver without native GUI IPC."""
+    from tgk.sizing import SizeSpec,resolve_size
+    metrics=_metrics_for(args)
+    if args.inset_top_dp is not None or args.inset_bottom_dp is not None:
+        metrics=replace(metrics,
+            inset_top_dp=args.inset_top_dp,
+            inset_bottom_dp=args.inset_bottom_dp)
+    spec=SizeSpec(
+        width_dp=args.item_width_dp,height_dp=args.item_height_dp,
+        width_fraction=args.item_width_fraction,
+        height_fraction=args.item_height_fraction,
+        min_width_dp=args.min_width_dp,min_height_dp=args.min_height_dp,
+        max_width_dp=args.max_width_dp,max_height_dp=args.max_height_dp,
+        max_width_fraction=args.max_width_fraction,
+        max_height_fraction=args.max_height_fraction,
+        margin_horizontal_dp=args.margin_horizontal_dp,
+        margin_vertical_dp=args.margin_vertical_dp,
+        aspect_ratio=args.aspect_ratio,fit=args.fit)
+    resolved=resolve_size(spec,metrics,touch_target_dp=args.touch_target_dp,
+                          interactive=args.interactive)
+    result={"schema_version":1,"source":"termuxgui" if args.connect else "simulated",
+            "screen":metrics.to_dict(),"requested":asdict(spec),
+            "resolved":asdict(resolved),"interactive":args.interactive,
+            "touch_target_dp":args.touch_target_dp,
+            "physical_display_metrics_verified":False}
+    if args.json:
+        print(json.dumps(result,ensure_ascii=False,allow_nan=False,separators=(",",":")))
+    else:
+        print(f"{result['source']} window: {metrics.width_dp:g} x "
+              f"{metrics.height_dp:g}dp ({metrics.orientation})")
+        print(f"Resolved width: {resolved.width_dp}dp; "
+              f"height: {resolved.height_dp}dp")
+        print("Physical refresh/panel resolution/color-depth: not reported")
+    return 0
