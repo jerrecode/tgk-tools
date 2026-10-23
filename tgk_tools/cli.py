@@ -481,14 +481,15 @@ def run_doctor(args):
 def run_themes(args):
     """List available named presets or expose semantic roles as JSON."""
     import json
-    from tgk.theme import PRESETS,ROLES,DEFAULT_NAME,resolve_theme
+    from tgk.theme import PRESETS,ROLES,get_theme,resolve_theme
+    selected=get_theme().name
     if args.json:
-        print(json.dumps({"default":DEFAULT_NAME,"roles":list(ROLES),
+        print(json.dumps({"default":selected,"roles":list(ROLES),
                           "presets":{name:resolve_theme(name).to_dict()["colors"]
                                      for name in PRESETS}},
                          ensure_ascii=False,indent=2))
     else:
-        print("TGK presets (default: "+DEFAULT_NAME+"):")
+        print("TGK presets (default: "+selected+"):")
         for name in PRESETS:print("  "+name)
         print("Roles: "+", ".join(ROLES))
     return 0
@@ -772,7 +773,7 @@ def main(argv=None):
     a=sub.add_parser('config',help='inspect, initialize and validate editable TGK settings')
     a.add_argument('action',nargs='?',default='show',
                    choices=('show','init','path','validate','palette','typography','options',
-                            'list','set'))
+                            'list','set','edit'))
     a.add_argument('name',nargs='?',help='preset name for palette/typography/options')
     a.add_argument('--palette',help='persist this default palette')
     a.add_argument('--typography',help='persist this default typography preset')
@@ -780,6 +781,12 @@ def main(argv=None):
     a.add_argument('--orientation',choices=('system','portrait','landscape'))
     a.add_argument('--window-mode',choices=('normal','dialog','overlay'))
     a.add_argument('--compact',action='store_true',help='single-line machine-readable JSON')
+    a.add_argument('--field',action='append',default=[],
+                   metavar='SECTION.KEY=JSON',
+                   help='atomic config edit: repeated validated section.field JSON updates')
+    a.add_argument('--reset-field',action='append',default=[],
+                   metavar='SECTION.KEY',
+                   help='reset one selected property to built-in default')
     from tgk_tools.config_cli import run_config
     a.set_defaults(run=run_config)
     args=p.parse_args(argv)
@@ -792,6 +799,10 @@ def main(argv=None):
             p.error('default selection flags require tgk config set')
         if args.name is not None and args.action not in ('palette','typography','options'):
             p.error('NAME is only used by palette/typography/options inspection')
+        if args.action=='edit' and not (args.field or args.reset_field):
+            p.error('tgk config edit requires --field or --reset-field')
+        if args.action!='edit' and (args.field or args.reset_field):
+            p.error('--field/--reset-field require tgk config edit')
         try:return args.run(args)
         except (RuntimeError,ValueError,OSError) as exc:
             print('tgk:',str(exc),file=sys.stderr);return 2

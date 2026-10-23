@@ -23,6 +23,51 @@ If GitHub repositories are cloned side-by-side in `~/tgk` and `~/tgk-tools`, `sh
 
 To install the framework directly without retaining the source checkout, run `sh ./install.sh --copy` inside `tgk`. Keep the Termux:GUI Android plugin installed and compatible with your Termux app. For an initial connection diagnostic, run `tgk doctor --connect`; for an offline check of just the C renderer run `tgk doctor --json`.
 
+## Configure defaults and responsive sizing
+
+The TGK installer creates `config.json`, named palette presets,
+typography presets and option profiles without overwriting user edits.
+Both the framework and CLI use the saved defaults unless an explicit
+per-instance argument or CLI option overrides them.
+
+```sh
+tgk config init
+tgk config list
+tgk config show --compact
+
+# Atomic update of several system/core configuration fields:
+tgk config edit \
+  --field layout.touch_target_dp=56 \
+  --field layout.compact_breakpoint_dp=720 \
+  --field runtime.clock_callbacks_per_tick=64 \
+  --field io.workers=2 \
+  --field icons.max_icons=500
+
+# Reset just one value (does not erase unrelated settings):
+tgk config edit --reset-field layout.touch_target_dp
+
+# Set named default palette, font and resource profile:
+tgk config set --palette ocean --typography terminal --options battery_saver
+
+# Default layout settings now come from config.json:
+tgk layout-plan --width-dp 700 --height-dp 850 --json
+tgk size-plan --width-dp 393 --height-dp 852 --interactive --json
+
+# Confirm the actual active preset, not a hard-coded factory default:
+tgk themes --json
+tgk typography --json
+```
+
+`tgk config edit` accepts repeated `--field SECTION.KEY=JSON_VALUE` and
+`--reset-field SECTION.KEY` options. Changes are validated together and
+committed as one atomic file replacement; validation failure leaves the
+previous configuration unchanged. String values must use JSON quoting
+(e.g. `--field 'ui.theme="forest"'`). Changing a preset or saved breakpoint
+does **not** force other per-instance overrides back to defaults. The layout
+planner uses the configured column count, grid units, touch minimum and both
+compact/expanded breakpoints unless individually overridden. It still
+operates on Android **window dp**, not unverified physical display properties.
+
 ## Update an existing installation
 
 For existing checkouts, update **the framework first**, followed by the

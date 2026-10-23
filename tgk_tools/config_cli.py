@@ -42,6 +42,40 @@ def _list_presets():
     return result
 
 
+def _edit_fields(args):
+    """Validate every field and commit one atomic patch to config.json."""
+    from tgk.config import patch_config,initialize_config,DEFAULT_CONFIG
+    changes={}
+    resets=[]
+    seen=set()
+    for item in args.field or ():
+        if "=" not in item or "." not in item.split("=",1)[0]:
+            raise ValueError("--field requires SECTION.KEY=JSON_VALUE")
+        path,serialized=item.split("=",1)
+        section,key=path.split(".",1)
+        if (section,key) in seen:
+            raise ValueError("duplicate edited setting: "+path)
+        seen.add((section,key))
+        try:value=json.loads(serialized)
+        except json.JSONDecodeError as exc:
+            raise ValueError("invalid JSON value for "+path+": "+str(exc)) from exc
+        changes.setdefault(section,{})[key]=value
+    for item in args.reset_field or ():
+        if "." not in item:raise ValueError("--reset-field requires SECTION.KEY")
+        section,key=item.split(".",1)
+        if (section,key) in seen:raise ValueError("setting both edited and reset: "+item)
+        seen.add((section,key))
+        resets.append((section,key))
+    if not changes and not resets:
+        raise ValueError("config edit requires --field and/or --reset-field")
+    if not config_path().is_file():initialize_config()
+    saved=patch_config(changes,reset=resets)
+    return {"settings":saved,"changed":[s+"."+k for s,fields in changes.items()
+                                       for k in fields],
+            "reset":[s+"."+k for s,k in resets],
+            "config_path":str(config_path())}
+
+
 def run_config(args):
     action=args.action
     if action=="init":
@@ -78,6 +112,8 @@ def run_config(args):
         result=_list_presets()
     elif action=="set":
         result=_apply_defaults(args)
+    elif action=="edit":
+        result=_edit_fields(args)
     else:raise ValueError("unknown config operation")
     print(json.dumps(result,ensure_ascii=False,indent=None if args.compact else 2,
                      sort_keys=True,separators=(",",":") if args.compact else None))
