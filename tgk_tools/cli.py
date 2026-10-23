@@ -749,7 +749,9 @@ def main(argv=None):
             print('tgk:',str(exc),file=sys.stderr);return 2
     from tgk.config import load_config
     try:settings=load_config()
-    except (ValueError,OSError) as exc:p.error(str(exc))
+    except (ValueError,OSError) as exc:
+        print('tgk:',str(exc),file=sys.stderr)
+        return 2
     if args.command=='files' and args.max_items is None:
         args.max_items=settings['tools']['max_file_items']
     if args.command=='canvas-demo' and args.fps is None:
