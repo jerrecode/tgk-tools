@@ -123,20 +123,20 @@ Termux:GUI IPC, while other commands can be tested on Linux without a GUI.
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.7.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.9.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.7.tar.gz
-cd tgk_bundle_v0.6.7
+tar -xzf tgk_bundle_v0.6.9.tar.gz
+cd tgk_bundle_v0.6.9
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.7.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.9.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.7.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.9.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -594,7 +594,7 @@ tgk size-plan --connect --item-width-fraction .9 --json
 Existing `tgk layout-plan` and `tgk adaptive-demo` continue to honor
 configured physical grid columns and their 12-unit logical span mapping.
 This release makes installed TGK Tools package metadata, its Python version,
-and the downloadable `tgk_bundle_v0.6.7.tar.gz` agree.
+and the downloadable `tgk_bundle_v0.6.9.tar.gz` agree.
 
 Physical display FPS, panel resolution, and unknown status-bar insets are
 not guessed; Android hardware validation is still required.
@@ -629,6 +629,21 @@ All persistent updates remain atomic and bounded: cross-process locking is
 handled by the core, while each application and CLI can still override saved
 defaults explicitly. Direct manual edits made by other programs do not
 participate in the lock unless those programs also acquire it.
+
+## Install-time generated icon catalog (0.6.9)
+
+`sh ./install.sh` verifies TGK core >=0.6.9, creates any missing
+configuration, palette, text-style and option presets, audits saved presets,
+and initializes `~/.config/tgk/icons/` when absent. The new catalog includes
+a manifest and generated SVGs; the `ico/`, `low_res/`, `mid_res/` and
+`high_res/` directories are empty by default. Optional PNG, JPEG and ICO
+raster files require CairoSVG and Pillow and are enabled through the saved
+TGK `icons.raster` setting.
+
+Installations preserve existing icon folders. If you want to rebuild
+customized SVG assets, do so explicitly with `tgk icons-build --overwrite`
+after backing them up. Offline bundles provide the same create-only
+installation as the standalone repositories.
 
 ## Shell commands
 
