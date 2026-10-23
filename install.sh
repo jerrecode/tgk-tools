@@ -60,5 +60,6 @@ fi
 # missing user-owned preset files without replacing customized ones.
 "$PYTHON" -m tgk.config init
 "$PYTHON" -m tgk.config validate
+"$PYTHON" -m tgk.config audit
 "$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; assert callable(config.patch_config); _lib()'
 printf '%s\n' 'Installed. Start with: tgk doctor --connect; tgk --help'
