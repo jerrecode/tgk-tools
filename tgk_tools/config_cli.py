@@ -76,6 +76,70 @@ def _edit_fields(args):
             "config_path":str(config_path())}
 
 
+def _doctor():
+    """Read-only assessment of selected profiles, durability and write contention.
+
+    The only possible filesystem change is creation of the private lock inode,
+    required for safe coordination. No preset or configuration values change.
+    """
+    import os
+    from tgk import __version__
+    from tgk.config import (_config_write_lock,configured_theme,
+                            configured_text_style)
+    from tgk.theme import PRESETS as PALETTES
+    from tgk.typography import PRESETS as FONTS
+    from tgk.config import OPTIONS
+    home=config_home()
+    path=config_path()
+    checks={}
+    problems=[]
+    checks["config_exists"]=path.is_file() and not path.is_symlink()
+    checks["preset_directories"]={
+        name:(home/name).is_dir() and not (home/name).is_symlink()
+        for name in ("palettes","text_styles","options")
+    }
+    expected={"palettes":PALETTES,"text_styles":FONTS,"options":OPTIONS}
+    missing={}
+    for folder,known in expected.items():
+        missing[folder]=sorted(name for name in known
+                               if not (home/folder/(name+".json")).is_file())
+    checks["missing_default_presets"]=missing
+    checks["config_file_mode"]=oct(path.stat().st_mode & 0o777) if path.is_file() else None
+    if not checks["config_exists"]:problems.append("configuration not initialized")
+    if any(not present for present in checks["preset_directories"].values()):
+        problems.append("preset directories missing")
+    if any(missing.values()):problems.append("default presets missing")
+    if checks["config_exists"]:
+        try:
+            settings=load_config()
+            theme=configured_theme()
+            style=configured_text_style()
+            option_config(settings["ui"]["option_profile"])
+            checks["selected"]={
+                "theme":theme.name,"text_style":settings["ui"]["text_style"],
+                "option_profile":settings["ui"]["option_profile"],
+                "orientation":settings["ui"]["orientation"]}
+            checks["resolved_font_size"]=style.size
+        except (ValueError,OSError,KeyError,TypeError) as exc:
+            problems.append("invalid selected configuration or preset: "+str(exc))
+        try:
+            with _config_write_lock(home,timeout=0.1):
+                checks["write_lock"]="acquired"
+        except TimeoutError:
+            checks["write_lock"]="busy"
+            problems.append("another process currently holds the config lock")
+        except (ValueError,OSError) as exc:
+            checks["write_lock"]="error"
+            problems.append("config lock unavailable: "+str(exc))
+    else:
+        checks["write_lock"]="not_checked"
+    return {
+        "healthy":not problems,"tgk_version":__version__,
+        "config_path":str(path),"checks":checks,"problems":problems,
+        "repair_command":"python -m tgk.config init",
+    }
+
+
 def run_config(args):
     action=args.action
     if action=="init":
@@ -114,7 +178,9 @@ def run_config(args):
         result=_apply_defaults(args)
     elif action=="edit":
         result=_edit_fields(args)
+    elif action=="doctor":
+        result=_doctor()
     else:raise ValueError("unknown config operation")
     print(json.dumps(result,ensure_ascii=False,indent=None if args.compact else 2,
                      sort_keys=True,separators=(",",":") if args.compact else None))
-    return 0
+    return 2 if action=="doctor" and not result["healthy"] else 0

@@ -773,7 +773,7 @@ def main(argv=None):
     a=sub.add_parser('config',help='inspect, initialize and validate editable TGK settings')
     a.add_argument('action',nargs='?',default='show',
                    choices=('show','init','path','validate','palette','typography','options',
-                            'list','set','edit'))
+                            'list','set','edit','doctor'))
     a.add_argument('name',nargs='?',help='preset name for palette/typography/options')
     a.add_argument('--palette',help='persist this default palette')
     a.add_argument('--typography',help='persist this default typography preset')

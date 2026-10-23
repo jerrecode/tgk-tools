@@ -29,7 +29,7 @@ command -v "$PYTHON" >/dev/null 2>&1 || {
   echo 'Missing Python build backend: python -m pip install setuptools' >&2
   exit 1
 }
-if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 6, 6)' >/dev/null 2>&1; then
+if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 6, 7)' >/dev/null 2>&1; then
   if [ -f ../install.sh ] && [ -f ../tgk/native/tgk_canvas.c ]; then
     printf '%s\n' 'Installing TGK from parent checkout as a self-contained copy...'
     (cd .. && PYTHON="$PYTHON" sh ./install.sh --copy)
@@ -60,5 +60,5 @@ fi
 # missing user-owned preset files without replacing customized ones.
 "$PYTHON" -m tgk.config init
 "$PYTHON" -m tgk.config validate
-"$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; assert callable(config.patch_config); _lib()'
+"$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; assert callable(config.patch_config) and callable(config._config_write_lock); _lib()'
 printf '%s\n' 'Installed. Start with: tgk doctor --connect; tgk --help'

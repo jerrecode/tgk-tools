@@ -105,20 +105,20 @@ Termux:GUI IPC, while other commands can be tested on Linux without a GUI.
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.6.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.7.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.6.tar.gz
-cd tgk_bundle_v0.6.6
+tar -xzf tgk_bundle_v0.6.7.tar.gz
+cd tgk_bundle_v0.6.7
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.6.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.7.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.6.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.7.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -576,10 +576,41 @@ tgk size-plan --connect --item-width-fraction .9 --json
 Existing `tgk layout-plan` and `tgk adaptive-demo` continue to honor
 configured physical grid columns and their 12-unit logical span mapping.
 This release makes installed TGK Tools package metadata, its Python version,
-and the downloadable `tgk_bundle_v0.6.6.tar.gz` agree.
+and the downloadable `tgk_bundle_v0.6.7.tar.gz` agree.
 
 Physical display FPS, panel resolution, and unknown status-bar insets are
 not guessed; Android hardware validation is still required.
+
+## Concurrent-safe configuration diagnostics (TGK 0.6.7)
+
+The TGK 0.6.7 core now serializes simultaneous `config.json` updates from
+independent processes using a private POSIX `flock` file. TGK Tools 0.6.7
+requires this core version. `sh ./install.sh` installs missing default
+palettes, text styles, option profiles, and the main configuration without
+overwriting user modifications.
+
+Run the diagnostic after installation, configuration edits, or changing
+option presets:
+
+```sh
+tgk config init                 # create only missing preset files
+tgk config doctor               # detailed install and lock diagnostics
+tgk config doctor --compact     # machine-readable, single-line JSON
+tgk config list                 # available themes/fonts/option profiles
+tgk config set --palette ocean --typography title_h2 --options battery_saver
+```
+
+The doctor validates the selected theme/font/profile and reports missing
+default preset files, config permissions and whether the write lock is
+available **at inspection time**. Exit status is 0 when healthy or 2 when
+repair is needed; even failures return a JSON report on stdout. A busy lock
+does not prove the configuration is damaged—it may mean another Termux
+session is writing it. The diagnostic does not overwrite settings.
+
+All persistent updates remain atomic and bounded: cross-process locking is
+handled by the core, while each application and CLI can still override saved
+defaults explicitly. Direct manual edits made by other programs do not
+participate in the lock unless those programs also acquire it.
 
 ## Shell commands
 
