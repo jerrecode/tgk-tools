@@ -11,7 +11,7 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-BUNDLE_NAME = 'tgk_bundle_v0.6.5'
+BUNDLE_NAME = 'tgk_bundle_v0.6.6'
 IGNORED = {'.git', '__pycache__', '.pytest_cache', '.mypy_cache', 'build', 'dist'}
 
 INSTALLER = '''#!/usr/bin/env sh
@@ -33,7 +33,7 @@ esac
 echo 'Next: tgk doctor --connect (requires the Termux:GUI Android app)'
 '''
 
-README = '''# TGK + TGK Tools offline source installer (v0.6.5)
+README = '''# TGK + TGK Tools offline source installer (v0.6.6)
 
 This bundle includes both repositories, without precompiled libraries or Git history. It compiles TGK for the local device and installs both packages as **non-editable copies**, so the extracted directory can be deleted after installation.
 
@@ -43,8 +43,8 @@ Install the matching Termux:GUI Android app first. In Termux:
 pkg update
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.5.tar.gz
-cd tgk_bundle_v0.6.5
+tar -xzf tgk_bundle_v0.6.6.tar.gz
+cd tgk_bundle_v0.6.6
 sh ./install.sh
 tgk doctor --connect
 ```
