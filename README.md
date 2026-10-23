@@ -25,20 +25,20 @@ To install the framework directly without retaining the source checkout, run `sh
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.4.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.5.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.4.tar.gz
-cd tgk_bundle_v0.6.4
+tar -xzf tgk_bundle_v0.6.5.tar.gz
+cd tgk_bundle_v0.6.5
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.4.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.5.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.4.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.5.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -586,3 +586,37 @@ a disposable environment. A green Linux bundle check confirms Python and C
 packaging, **not** Termux:GUI Android service compatibility or touch/render
 accuracy. Existing user-modified `~/.config/tgk` presets are initialized in
 create-only mode and are not overwritten.
+
+## Viewport-relative GUI sizing preview (TGK Tools 0.6.5)
+
+`tgk size-plan` uses the same **opt-in SizeSpec** resolver as TGK 0.6.5.
+It accepts dp dimensions or fractions of the measured Android content
+window, independent min/max limits, fraction caps, aspect ratio containment,
+explicit margins and (only if provided) measured system insets. No values
+are inferred for hardware maximum FPS, physical panel resolution, bit depth,
+or unknown navigation/status-bar insets.
+
+```sh
+# Half-width card, at most one fifth of the window height:
+tgk size-plan --width-dp 393 --height-dp 852 \\
+  --item-width-fraction .5 --item-height-fraction .5 \\
+  --max-height-fraction .2 --json
+
+# Preserve 2:1 aspect ratio inside a requested 120 x 240 dp box:
+tgk size-plan --width-dp 393 --height-dp 852 \\
+  --item-width-dp 120 --item-height-dp 240 \\
+  --aspect-ratio 2 --json
+
+# Interactive minimum comes from the saved layout option profile by default:
+tgk config set --options accessibility_touch
+tgk size-plan --width-dp 393 --height-dp 852 \\
+  --item-width-dp 24 --item-height-dp 24 --interactive --json
+```
+
+Use `--touch-target-dp` to override the saved/profile default for this
+invocation without rewriting `config.json`. `--connect` reads actual
+Termux:GUI window dp metrics on Android. If using a normal Activity already
+below the system status bar, do **not** subtract the inset a second time.
+The non-JSON result is a human-readable preview; JSON contains the parsed
+request and resolved width/height in dp and explicitly states that physical
+display metrics were not verified.
