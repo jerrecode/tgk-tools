@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tgk-tools"
-version = "0.3.0"
+version = "0.4.0"
 description = "Shell-first Android GUIs based on TGK and Termux:GUI"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-dependencies = ["tgk>=0.3.0"]
+dependencies = ["tgk>=0.4.0"]
 
 [project.scripts]
 tgk = "tgk_tools.cli:main"
