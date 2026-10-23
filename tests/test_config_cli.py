@@ -79,6 +79,36 @@ class ConfigCLITests(unittest.TestCase):
         self.assertIn("12 columns",err)
         self.assertEqual((self.root/"config.json").read_bytes(),before)
 
+    def test_pipeline_obeys_default_byte_cap_but_explicit_flag_wins(self):
+        self.command("config","init")
+        self.command("config","set","io.max_bytes","512")
+        payload=self.root/"input.bin"
+        payload.write_bytes(b"x"*1024)
+        status,out,err=self.command("pipeline","hash",str(payload))
+        self.assertEqual(status,2)
+        self.assertIn("maximum transfer size",err)
+        status,out,err=self.command("pipeline","hash",str(payload),
+                                    "--max-bytes","2048")
+        self.assertEqual(status,0,err)
+        self.assertEqual(json.loads(out)["bytes"],1024)
+
+    def test_icon_build_uses_configured_sizes_and_explicit_override(self):
+        self.command("config","init")
+        self.command("config","set","icons.mid_res","128")
+        from unittest.mock import patch
+        with patch("tgk.icon_builder.build_assets",return_value={
+            "output":"ignored","count":1,"raster":False}) as builder:
+            status,out,err=self.command("icons-build","--output",str(self.root),
+                                        "--icon","file")
+        self.assertEqual(status,0,err)
+        self.assertEqual(builder.call_args.kwargs["mid"],128)
+        with patch("tgk.icon_builder.build_assets",return_value={
+            "output":"ignored","count":1,"raster":False}) as builder:
+            status,out,err=self.command("icons-build","--output",str(self.root),
+                                        "--icon","file","--mid","160")
+        self.assertEqual(status,0,err)
+        self.assertEqual(builder.call_args.kwargs["mid"],160)
+
     def test_presets_contain_expected_roles_and_component_names(self):
         rc,out,err=self.command("config","presets","--json")
         self.assertEqual(rc,0,err)
