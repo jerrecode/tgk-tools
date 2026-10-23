@@ -721,6 +721,35 @@ def main(argv=None):
                    help='virtual span units, independent of native columns')
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_layout_plan',args))
+    a=sub.add_parser('size-plan',parents=[theme_flags],
+                     help='opt-in viewport dp SizeSpec preview, offline or Termux:GUI')
+    a.add_argument('--connect',action='store_true')
+    a.add_argument('--width-dp',type=float)
+    a.add_argument('--height-dp',type=float)
+    a.add_argument('--density',type=float,default=1.0)
+    a.add_argument('--font-scale',type=float,default=1.0)
+    a.add_argument('--item-width-dp',type=float)
+    a.add_argument('--item-height-dp',type=float)
+    a.add_argument('--item-width-fraction',type=float)
+    a.add_argument('--item-height-fraction',type=float)
+    a.add_argument('--min-width-dp',type=float)
+    a.add_argument('--min-height-dp',type=float)
+    a.add_argument('--max-width-dp',type=float)
+    a.add_argument('--max-height-dp',type=float)
+    a.add_argument('--max-width-fraction',type=float)
+    a.add_argument('--max-height-fraction',type=float)
+    a.add_argument('--margin-horizontal-dp',type=float,default=0)
+    a.add_argument('--margin-vertical-dp',type=float,default=0)
+    a.add_argument('--inset-top-dp',type=float,default=None,
+                   help='explicit known inset; never guessed from Android status bar')
+    a.add_argument('--inset-bottom-dp',type=float,default=None)
+    a.add_argument('--aspect-ratio',type=float)
+    a.add_argument('--fit',choices=('contain','stretch'),default='contain')
+    a.add_argument('--interactive',action='store_true')
+    a.add_argument('--touch-target-dp',type=int,default=None,
+                   help='default is saved layout/option-profile minimum')
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=lambda args:_run_mobile('run_size_plan',args))
     a=sub.add_parser('style-catalog',parents=[theme_flags],
                      help='show preset typography, component geometry and full palette')
     a.add_argument('--json',action='store_true')
@@ -775,6 +804,8 @@ def main(argv=None):
         for key in ('columns','touch_target_dp','grid_unit_dp'):
             if getattr(args,key) is None:
                 setattr(args,key,settings['layout'][key])
+    if args.command=='size-plan' and args.touch_target_dp is None:
+        args.touch_target_dp=settings['layout']['touch_target_dp']
     if args.command=='files' and args.max_items is None:
         args.max_items=settings['tools']['max_file_items']
     if args.command=='canvas-demo' and args.fps is None:
@@ -805,6 +836,8 @@ def main(argv=None):
         if args.command=='layout-plan':
             if not 0<=args.items<=2000:p.error('--items must be in 0..2000')
             if not 1<=args.span_units<=32:p.error('--span-units must be in 1..32')
+    if args.command=='size-plan' and not 32<=args.touch_target_dp<=256:
+        p.error('size-plan touch target must be in 32..256dp')
     if args.command=='benchmark':
         if not 1<=args.nodes<=5000 or not 1<=args.iterations<=10000 or not 1<=args.samples<=10:
             p.error('benchmark bounds: --nodes 1..5000, --iterations 1..10000, --samples 1..10')
