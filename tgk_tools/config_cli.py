@@ -32,6 +32,9 @@ def _apply_defaults(args):
         ui["option_profile"]=name
     if args.orientation is not None:ui["orientation"]=args.orientation
     if args.window_mode is not None:ui["window_mode"]=args.window_mode
+    # Native installer normally creates this, but CLI can bootstrap missing
+    # settings without ever overwriting a user's existing files.
+    initialize_config()
     settings=update_settings({"ui":ui})
     return {"settings":settings,"profile_applied":args.options,
             "config_path":str(config_path())}
