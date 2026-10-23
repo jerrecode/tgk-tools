@@ -38,12 +38,16 @@ class NativeButton:
 
 
 class NativeView:
+    views=[]
     def __init__(self, *args, **kwargs):
         self.text = args[1] if len(args) > 1 else ''
         self.finished = False
+        self.width=None
+        self.height=None
+        type(self).views.append(self)
 
-    def setheight(self, *args): pass
-    def setwidth(self, *args): pass
+    def setheight(self, height): self.height=height
+    def setwidth(self, width): self.width=width
     def setmargin(self, *args): pass
     def setlinearlayoutparams(self, *args): pass
     def settextsize(self, *args): pass
@@ -76,7 +80,8 @@ class Connection:
 
 tg = types.SimpleNamespace(Connection=Connection, Activity=NativeView,
     LinearLayout=NativeView, FrameLayout=NativeView, NestedScrollView=NativeView,
-    TextView=NativeView, Button=NativeButton)
+    TextView=NativeView, Button=NativeButton,
+    View=types.SimpleNamespace(MATCH_PARENT='MATCH_PARENT'))
 
 
 class NativeFileDialogTests(unittest.TestCase):
@@ -86,6 +91,7 @@ class NativeFileDialogTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         NativeButton.buttons = []
         NativeButton.next_id = 0
+        NativeView.views = []
 
     def dialog(self, clicks, *, dirs_only=False, boundary=None):
         Connection.labels = clicks
@@ -101,6 +107,18 @@ class NativeFileDialogTests(unittest.TestCase):
     def test_unhashable_button_cancel(self):
         self.assertIsNone(NativeButton.__hash__)
         self.assertEqual(self.dialog(['Cancel']), (1, ''))
+
+    def test_full_width_list_and_buttons(self):
+        (self.root/'a.txt').write_text('a',encoding='utf-8')
+        self.dialog(['Cancel'])
+        widths=[view.width for view in NativeView.views]
+        self.assertGreaterEqual(widths.count('MATCH_PARENT'),3)
+        entry=next(button for button in NativeButton.buttons
+                   if button.text.endswith('a.txt'))
+        self.assertEqual(entry.width,'MATCH_PARENT')
+        cancel=next(button for button in NativeButton.buttons
+                    if button.text=='Cancel')
+        self.assertLess(cancel.width,192)
 
     def test_navigate_and_select_file(self):
         (self.root / 'sub').mkdir()

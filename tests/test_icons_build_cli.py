@@ -5,6 +5,8 @@ from pathlib import Path
 import json
 import tempfile
 import unittest
+import os
+from unittest.mock import patch
 
 from tgk_tools.cli import main
 
@@ -29,6 +31,19 @@ class IconBuildCLITests(unittest.TestCase):
             for folder in ('ico','low_res','mid_res','high_res'):
                 self.assertEqual(list((icons/folder).iterdir()),[])
             self.assertEqual(len(json.loads((icons/'manifest.json').read_text())['icons']),2)
+
+    def test_explicit_svg_only_overrides_saved_raster_default(self):
+        from tgk.config import initialize_config, patch_config, clear_config_cache
+        with tempfile.TemporaryDirectory() as root:
+            with patch.dict(os.environ, {'TGK_CONFIG_HOME': str(Path(root)/'config')}):
+                initialize_config()
+                patch_config({'icons': {'raster': True}})
+                code, output, error = self.run_cli('icons-build', '--output', root,
+                                                  '--icon', 'file', '--svg-only')
+                self.assertEqual(code, 0, error)
+                self.assertFalse(json.loads(output)['raster'])
+                self.assertEqual(list((Path(root)/'icons/ico').iterdir()), [])
+                clear_config_cache()
 
     def test_rebuilding_existing_output_requires_explicit_overwrite(self):
         with tempfile.TemporaryDirectory() as root:

@@ -296,9 +296,12 @@ def run_files(args):
         from tgk.theme import apply_activity_theme,get_theme
         apply_activity_theme(activity,get_theme())
         root=_paint_object(tg.LinearLayout(activity,vertical=True),'root',args)
+        root.setwidth(tg.View.MATCH_PARENT)
+        root.setheight(tg.View.MATCH_PARENT)
         heading=_paint_object(tg.TextView(activity,'Files',root),'heading',args)
         heading.settextsize(19)
         scroll=tg.NestedScrollView(activity,root)
+        scroll.setwidth(tg.View.MATCH_PARENT)
         scroll.setheight(0);scroll.setlinearlayoutparams(1)
         control=native_action_footer(tg,activity,root,'Cancel',
               paint=lambda v:_paint_object(v,'cancel',args))
@@ -309,11 +312,14 @@ def run_files(args):
             heading.settext((args.title or 'Select a path')+'\n'+str(directory))
             scroll.clearchildren()
             listbox=tg.LinearLayout(activity,scroll,vertical=True)
+            listbox.setwidth(tg.View.MATCH_PARENT)
             if directory.parent!=directory and (boundary is None or directory!=boundary):
-                b=_paint_object(tg.Button(activity,'[..] Parent directory',listbox),'button',args);b.sendclickevent(True)
+                b=_paint_object(tg.Button(activity,'[..] Parent directory',listbox),'button',args)
+                b.setwidth(tg.View.MATCH_PARENT);b.sendclickevent(True)
                 controls.append((b,'dir',directory.parent))
             if args.dirs_only:
-                b=_paint_object(tg.Button(activity,'[Select this directory]',listbox),'button',args);b.sendclickevent(True)
+                b=_paint_object(tg.Button(activity,'[Select this directory]',listbox),'button',args)
+                b.setwidth(tg.View.MATCH_PARENT);b.sendclickevent(True)
                 controls.append((b,'select',directory))
             try:
                 entries,truncated=_limited_file_entries(
@@ -330,6 +336,7 @@ def run_files(args):
                 else:
                     prefix='[DIR] ' if is_dir else '       '
                 b=_paint_object(tg.Button(activity,prefix+path.name,listbox),'button',args)
+                b.setwidth(tg.View.MATCH_PARENT)
                 b.sendclickevent(True)
                 controls.append((b,'dir' if is_dir else 'select',path))
             if truncated:
@@ -501,7 +508,8 @@ def run_demo(args):
     if args.list:
         for name,description in SCENARIOS.items():print(name+"  "+description)
         return 0
-    Laboratory(scenario=args.scenario,theme=get_theme()).run()
+    if args.gallery:_require_gallery()(theme=get_theme()).run()
+    else:Laboratory(scenario=args.scenario,theme=get_theme()).run()
     return 0
 
 
@@ -569,6 +577,21 @@ def _configure_theme(args,parser):
             args.object_colors[(target,property_name)]=normalize_color(hexvalue.strip())
     except (ValueError,OSError) as exc:
         parser.error(str(exc))
+
+def _require_gallery():
+    try:
+        from tgk.demos import Gallery
+    except ImportError as exc:
+        raise RuntimeError('Single-Activity galleries require the current framework; '
+                           'update TGK using sh ./install.sh --copy in its checkout') from exc
+    return Gallery
+
+
+def _run_workflow_lazily(args):
+    _require_gallery()
+    from tgk_tools.example_workflow import run_workflow
+    return run_workflow(args)
+
 
 def _run_pipeline_lazily(args):
     # Do not break existing shell commands while a user's older TGK core is
@@ -656,7 +679,15 @@ def main(argv=None):
     a.add_argument('--json',action='store_true');a.set_defaults(run=run_themes)
     a=sub.add_parser('demo',parents=[theme_flags],help='run 16 graduated UI and theme studio labs')
     a.add_argument('--scenario',default='12_studio',help='scenario code, see --list')
-    a.add_argument('--list',action='store_true');a.set_defaults(run=run_demo)
+    a.add_argument('--list',action='store_true')
+    a.add_argument('--gallery',action='store_true',
+                   help='choose and switch demos inside one Termux:GUI Activity')
+    a.set_defaults(run=run_demo)
+    a=sub.add_parser('workflow',parents=[theme_flags],
+                     help='one-Activity project prompt and demo-mode navigator')
+    a.add_argument('--project',default='Termux lab',
+                   help='initial editable project name (max 256 characters)')
+    a.set_defaults(run=_run_workflow_lazily)
     a=sub.add_parser('icons',parents=[theme_flags],help='semantic icons and file type resolver')
     a.add_argument('--json',action='store_true')
     a.add_argument('--category',choices=('files','directories','actions','media','view','navigation'))
@@ -672,8 +703,11 @@ def main(argv=None):
                      help='atomic layered SVG/PNG/JPG/ICO pack generator')
     a.add_argument('--output',default='.',help='parent directory for icons/')
     a.add_argument('--icon',action='append',help='specific named recipe; repeatable')
-    a.add_argument('--raster',action='store_true',default=None,
+    raster_mode=a.add_mutually_exclusive_group()
+    raster_mode.add_argument('--raster',dest='raster',action='store_true',default=None,
                    help='generate raster variants; requires optional CairoSVG + Pillow')
+    raster_mode.add_argument('--svg-only',dest='raster',action='store_false',
+                   help='override saved raster setting and generate SVG only')
     a.add_argument('--overwrite',action='store_true',
                    help='replace an existing icon pack only after successful staging')
     a.add_argument('--low',type=int,default=None)
@@ -687,6 +721,8 @@ def main(argv=None):
     a.set_defaults(run=_run_typography_lazily)
     a=sub.add_parser('ui-lab',parents=[theme_flags],help='tabs, popup, icons, rich text and canvas')
     a.add_argument('--mode',choices=('normal','dialog','overlay'),default='normal')
+    a.add_argument('--fallback-normal',action='store_true',
+                   help='if overlay creation fails, warn and open a normal Activity')
     a.add_argument('--start-page',choices=('home','icons','text','canvas','screens'),default='home')
     a.set_defaults(run=_run_lab_lazily)
     a=sub.add_parser('pipeline',parents=[theme_flags],
