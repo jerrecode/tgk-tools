@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 
 from tgk.icons import ICONS,CATEGORIES,icon_names,icon_for_path,glyph,svg
-from tgk.typography import PRESETS,resolve_text_style,get_text_style
+from tgk.typography import resolve_text_style,get_text_style
+from tgk.config import text_registry,settings
 from tgk.theme import get_theme
 
 
@@ -31,7 +32,7 @@ def run_typography(args):
     if args.preview:
         TypographyPreview(args).run()
     elif args.json:
-        print(json.dumps({"default":"body","presets":{
+        print(json.dumps({"default":settings()['defaults']['typography'],"presets":{
             name:dict(family=resolve_text_style(name).family,
                       size=resolve_text_style(name).size,
                       weight=resolve_text_style(name).weight,
@@ -40,10 +41,10 @@ def run_typography(args):
                       strike=resolve_text_style(name).strike,
                       role=resolve_text_style(name).role,
                       line_height=resolve_text_style(name).line_height)
-            for name in PRESETS}},indent=2))
+            for name in text_registry()}},indent=2))
     else:
-        print("Typography presets (default: body):")
-        for name in PRESETS:
+        print("Typography presets (default: "+settings()['defaults']['typography']+"):")
+        for name in text_registry():
             s=resolve_text_style(name)
             print(f"  {name:12s}  {s.family:5s} {s.size:3d}sp "
                   f"weight={s.weight} role={s.role}")
@@ -186,7 +187,7 @@ class TypographyPreview:
                 root=BoxLayout(orientation="vertical")
                 scroll=ScrollView(weight=1)
                 stack=BoxLayout(orientation="vertical")
-                for name in PRESETS:
+                for name in text_registry():
                     stack.add_widget(RichTextLabel(
                         text=f"{name}: The quick brown fox jumps over 0123456789.",
                         style=name,height=82))
