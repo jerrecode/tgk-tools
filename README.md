@@ -68,6 +68,24 @@ planner uses the configured column count, grid units, touch minimum and both
 compact/expanded breakpoints unless individually overridden. It still
 operates on Android **window dp**, not unverified physical display properties.
 
+### Audit every installed preset before launching Android UI
+
+The installer now runs `tgk config audit` after non-destructive preset
+initialization and selected-configuration validation. It checks **all** installed
+palette, typography and option-profile files—including inactive presets—
+without rewriting user values. Missing built-in presets, malformed JSON, invalid
+colors/styles, symlinks and oversized files fail validation.
+
+```sh
+tgk config init                   # create missing files without overwriting edits
+tgk config validate               # validate current selected defaults
+tgk config audit --compact        # inspect all presets, not just active selections
+tgk config audit --max-files 1000 # bounded scan budget
+```
+
+Each JSON document has a 512 KiB read cap; scans default to at most 2,000
+files. Fix reported corrupt customizations explicitly. The audit is read-only.
+
 ## Update an existing installation
 
 For existing checkouts, update **the framework first**, followed by the
