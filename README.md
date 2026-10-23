@@ -306,6 +306,30 @@ Hardware touch and orientation behavior must be checked on a real Android
 device. Linux CI verifies API semantics, geometry calculations, model
 reflow and installability, not native graphical fidelity.
 
+## Python-path performance baseline (bounded and reproducible)
+
+`tgk benchmark` measures four TGK *Python* execution paths: widget-tree
+traversal, indexed event dispatch, local style invalidation, and bounded
+Clock callbacks. Results include median/p95 nanoseconds per operation across
+independent samples. The benchmark deliberately never creates an Android
+Activity, does not use real Termux:GUI IPC, and **cannot** measure actual UI
+frame rate, GPU performance, touchscreen-to-display latency or battery use.
+Use the JSON output to compare changes on the same Termux device and Python
+version, not to compare dissimilar hardware without context.
+
+```sh
+tgk benchmark --nodes 256 --iterations 500 --samples 3
+tgk benchmark --nodes 1000 --iterations 500 --samples 4 --json
+sh examples/26_cpu_performance_baseline.sh
+```
+
+Controls: `--nodes` 1–5000, `--iterations` 1–10000,
+`--samples` 1–10; the total product may not exceed 2 million
+node-iterations. The Clock benchmark processes pending callbacks in chunks of
+128 to exercise GUI-tick fairness. No external network or shell subprocess
+is started. `tgk doctor --connect` remains the separate native Termux:GUI
+connection validation entrypoint.
+
 ## Shell commands
 
 ```sh
