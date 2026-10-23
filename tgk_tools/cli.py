@@ -544,9 +544,15 @@ def _configure_theme(args,parser):
     except (ValueError,OSError) as exc:
         parser.error(str(exc))
 
+def _run_pipeline_lazily(args):
+    # Do not break existing shell commands while a user's older TGK core is
+    # awaiting upgrade; only the new pipeline operation needs the new API.
+    from tgk_tools.pipeline_cli import run_pipeline
+    return run_pipeline(args)
+
+
 def main(argv=None):
     from tgk_tools.advanced_ui import run_icons,run_typography,run_lab
-    from tgk_tools.pipeline_cli import run_pipeline
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
     theme_flags=argparse.ArgumentParser(add_help=False)
@@ -614,7 +620,7 @@ def main(argv=None):
     a.add_argument('--allow-http',action='store_true',help='allow insecure HTTP explicitly')
     a.add_argument('--allow-host',action='append',default=[],
                    help='optional HTTPS hostname allowlist (repeatable)')
-    a.set_defaults(run=run_pipeline)
+    a.set_defaults(run=_run_pipeline_lazily)
     args=p.parse_args(argv)
     _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
@@ -641,6 +647,11 @@ def main(argv=None):
         p.error('Use --path separately from --category')
     try:return args.run(args)
     except ModuleNotFoundError as exc:
+        if exc.name=='tgk.io_pipeline':
+            print('tgk: pipeline requires TGK >=0.3.0; update the framework '
+                  'using sh ./install.sh --copy in the TGK checkout',
+                  file=sys.stderr)
+            return 2
         if exc.name!='termuxgui':raise
         print('tgk: Missing Python bindings: python -m pip install termuxgui; '
               'also install the matching Termux:GUI Android app',file=sys.stderr)
