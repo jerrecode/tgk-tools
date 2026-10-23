@@ -94,6 +94,31 @@ class InstalledPresetCatalogTests(unittest.TestCase):
         self.assertEqual(path.read_bytes(), before)
         self.assertFalse((self.root / "config.json").exists())
 
+    def test_typography_previews_render_installed_edits_and_custom_presets(self):
+        from tgk import RichTextLabel
+        self.write_preset("text_styles", "body", {
+            "style": "body", "properties": {"size": 21}})
+        self.write_preset("text_styles", "custom_mono", {
+            "style": "terminal", "properties": {"size": 23}})
+        def samples(app):
+            pending = [app.build()]
+            while pending:
+                widget = pending.pop()
+                pending.extend(widget.children)
+                if isinstance(widget, RichTextLabel):
+                    shown[widget.text.split(":", 1)[0]] = widget
+        for arguments in (("typography", "--preview"), ("ui-lab",)):
+            with self.subTest(arguments=arguments):
+                shown = {}
+                with patch("tgk.App.run", autospec=True, side_effect=samples):
+                    code, output, errors = self.invoke(*arguments)
+                self.assertEqual(code, 0, errors)
+                self.assertIn("custom_mono", shown)
+                self.assertEqual(shown["custom_mono"].style.size, 23)
+                self.assertEqual(shown["custom_mono"].style.family, "mono")
+                self.assertEqual(shown["body"].style.size, 21)
+                self.assertIn("custom_mono", shown["custom_mono"].html())
+
     def test_inactive_invalid_catalog_entry_reports_error_without_partial_json(self):
         self.write_preset("text_styles", "invalid_style", {
             "style": "body", "properties": {"size": 9999}})

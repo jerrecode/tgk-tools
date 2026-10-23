@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from tgk.icons import ICONS,CATEGORIES,icon_names,icon_for_path,glyph,svg
-from tgk.typography import PRESETS,get_text_style
+from tgk.typography import get_text_style
 from tgk.theme import get_theme
 
 
@@ -34,7 +34,7 @@ def run_typography(args):
     from tgk_tools.preset_catalog import text_entries
     presets=text_entries()
     if args.preview:
-        TypographyPreview(args).run()
+        TypographyPreview(args,presets).run()
     elif args.json:
         print(json.dumps({"default":current_name,"active_size":get_text_style().size,
                           "presets":{
@@ -83,7 +83,8 @@ class AdvancedLab:
                          InfiniteCanvas,RichTextLabel,TextSpan,Button)
         from tgk.icons import CATEGORIES
         from tgk.theme import PRESETS as COLORS
-        from tgk.typography import PRESETS as TEXTS
+        from tgk_tools.preset_catalog import text_entries
+        text_presets=text_entries()
         class Lab(App):
             def __init__(self):
                 self.n=0
@@ -136,9 +137,9 @@ class AdvancedLab:
                     spans=[TextSpan("Bold heading ",style="title"),
                            TextSpan("italic text ",style="quote",color="#9AC8FF"),
                            TextSpan("and code <tags>",style="code")],height=115))
-                for name in TEXTS:
+                for name,style in text_presets.items():
                     stack.add_widget(RichTextLabel(text=f"{name}: Font scale Aa 123",
-                                                   style=name,height=62))
+                                                   style=style,height=62))
                 text_scroll.add_widget(stack)
                 text_page.add_widget(text_scroll)
                 self.tabs.add_widget(text_page)
@@ -196,19 +197,25 @@ class AdvancedLab:
 
 
 class TypographyPreview:
-    def __init__(self,args):self.args=args
+    def __init__(self,args,presets=None):
+        self.args=args
+        if presets is None:
+            from tgk_tools.preset_catalog import text_entries
+            presets=text_entries()
+        self.presets=presets
     def run(self):
         from tgk import App,ScrollView,BoxLayout,RichTextLabel,Button
         args=self.args
+        presets=self.presets
         class Showcase(App):
             def build(self):
                 root=BoxLayout(orientation="vertical")
                 scroll=ScrollView(weight=1)
                 stack=BoxLayout(orientation="vertical")
-                for name in PRESETS:
+                for name,style in presets.items():
                     stack.add_widget(RichTextLabel(
                         text=f"{name}: The quick brown fox jumps over 0123456789.",
-                        style=name,height=82))
+                        style=style,height=82))
                 scroll.add_widget(stack);root.add_widget(scroll)
                 from tgk.layout_helpers import compact_action_bar
                 root.add_widget(compact_action_bar("Close",self.stop,margin=12))
