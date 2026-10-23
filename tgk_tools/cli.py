@@ -314,7 +314,12 @@ def run_files(args):
                 tg.TextView(activity,f'Cannot read directory: {exc}',listbox)
                 return
             for path,is_dir in entries:
-                b=_paint_object(tg.Button(activity,('[DIR] ' if is_dir else '       ')+path.name,listbox),'button',args)
+                if args.icons:
+                    from tgk.icons import glyph,icon_for_path
+                    prefix=glyph(icon_for_path(path,is_dir=is_dir))+' '
+                else:
+                    prefix='[DIR] ' if is_dir else '       '
+                b=_paint_object(tg.Button(activity,prefix+path.name,listbox),'button',args)
                 b.sendclickevent(True)
                 controls.append((b,'dir' if is_dir else 'select',path))
             if truncated:
@@ -569,7 +574,7 @@ def main(argv=None):
     a=sub.add_parser('choose',parents=[theme_flags],help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append');a.set_defaults(run=run_choose)
     a=sub.add_parser('show',parents=[theme_flags],help='read text file or piped input in native scroll view');a.add_argument('file');a.add_argument('--title');a.add_argument('--max-chars',type=int,default=100_000);a.set_defaults(run=run_show)
     a=sub.add_parser('image',parents=[theme_flags],help='PNG/JPG native image viewer');a.add_argument('file');a.add_argument('--max-bytes',type=int,default=24_000_000);a.set_defaults(run=run_image)
-    a=sub.add_parser('files',parents=[theme_flags],help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=150);a.set_defaults(run=run_files)
+    a=sub.add_parser('files',parents=[theme_flags],help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=150);a.add_argument('--icons',action='store_true',help='show semantic file/folder symbols');a.set_defaults(run=run_files)
     a=sub.add_parser('progress',parents=[theme_flags],help='watch a JSON progress file and display a native progress bar');a.add_argument('file');a.add_argument('--title');a.add_argument('--auto-close',action='store_true');a.add_argument('--timeout',type=float,default=0);a.set_defaults(run=run_progress)
     a=sub.add_parser('doctor',parents=[theme_flags],help='inspect Termux:GUI/C runtime; --connect checks actual IPC');a.add_argument('--connect',action='store_true');a.add_argument('--json',action='store_true');a.set_defaults(run=run_doctor)
     a=sub.add_parser('canvas-demo',parents=[theme_flags],help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=25);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
