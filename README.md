@@ -424,7 +424,16 @@ A configuration edit takes effect when a new CLI process or GUI App starts.
 See the [TGK core README](https://github.com/jerrecode/tgk) for the
 complete JSON schema and precedence contract.
 
-## Persistently select defaults (TGK 0.6.1)
+## Persistently select defaults (TGK Tools 0.6.2)
+
+TGK Tools now delegates multi-setting updates to TGK 0.6.3's atomic
+`patch_config()` API. A single `tgk config set` changes the selected
+palette, typography, option profile, orientation and window mode as **one
+validated transaction**. Errors leave the prior config untouched. The
+option profile is saved as a name rather than an irreversible numeric
+snapshot. Global defaults remain overrideable by CLI flags or per-widget
+options.
+
 
 TGK installs editable JSON configuration beneath `~/.config/tgk/` or the
 directory chosen through `TGK_CONFIG_HOME` / `XDG_CONFIG_HOME`.
