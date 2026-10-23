@@ -48,7 +48,9 @@ def run_layout_plan(args):
                           span_medium=span[1],span_expanded=span[2]))
     else:
         for _ in range(args.items):
-            children.append(SimpleNamespace(span_compact=12,span_medium=6,span_expanded=4))
+            children.append(SimpleNamespace(
+                span_compact=logical,span_medium=max(1,(logical+1)//2),
+                span_expanded=max(1,(logical+2)//3)))
     positions=arrange_spans(children,columns=cols,span_units=logical,metrics=metrics)
     result={"source":"termuxgui" if args.connect else "simulated",
             "screen":metrics.to_dict(),
