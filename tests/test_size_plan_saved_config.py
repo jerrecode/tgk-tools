@@ -47,7 +47,6 @@ class SizePlanSavedConfigTests(unittest.TestCase):
         self.assertEqual(load_config()['layout']['touch_target_dp'],64)
 
     def test_measured_additional_insets_only(self):
-        rc,out,err=self.cli('--item-height-fraction','0.5') if False else (0,'','')
         # Compare non-interactive fraction-driven plans without conflicting dims.
         def query(*args):
             output=StringIO()
