@@ -481,15 +481,18 @@ def run_doctor(args):
 def run_themes(args):
     """List available named presets or expose semantic roles as JSON."""
     import json
-    from tgk.theme import PRESETS,ROLES,DEFAULT_NAME,resolve_theme
+    from tgk.theme import ROLES
+    from tgk_tools.preset_catalog import palette_entries,current_defaults
+    palettes=palette_entries()
+    selected=current_defaults()["palette"]
     if args.json:
-        print(json.dumps({"default":DEFAULT_NAME,"roles":list(ROLES),
-                          "presets":{name:resolve_theme(name).to_dict()["colors"]
-                                     for name in PRESETS}},
+        print(json.dumps({"default":selected,"roles":list(ROLES),
+                          "presets":{name:dict(theme.colors)
+                                     for name,theme in palettes.items()}},
                          ensure_ascii=False,indent=2))
     else:
-        print("TGK presets (default: "+DEFAULT_NAME+"):")
-        for name in PRESETS:print("  "+name)
+        print("TGK presets (default: "+selected+"):")
+        for name in palettes:print("  "+name)
         print("Roles: "+", ".join(ROLES))
     return 0
 
@@ -510,7 +513,9 @@ def _configure_theme(args,parser):
     from tgk.config import configured_theme,configured_text_style
     try:
         chosen=load_theme(args.theme_file) if args.theme_file else configured_theme()
-        if args.theme:chosen=resolve_theme(args.theme)
+        if args.theme:
+            from tgk_tools.preset_catalog import load_palette_named
+            chosen=load_palette_named(args.theme)
         overrides={}
         for item in args.color:
             if '=' not in item:raise ValueError("--color requires ROLE=#HEX")
@@ -713,8 +718,8 @@ def main(argv=None):
     a.add_argument('--items',type=int,default=8)
     a.add_argument('--spans',action='append',default=[],
                    metavar='COMPACT,MEDIUM,EXPANDED')
-    a.add_argument('--touch-target-dp',type=int,default=48)
-    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.add_argument('--touch-target-dp',type=int,default=None)
+    a.add_argument('--grid-unit-dp',type=int,default=None)
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_layout_plan',args))
     a=sub.add_parser('style-catalog',parents=[theme_flags],
@@ -724,8 +729,8 @@ def main(argv=None):
     a=sub.add_parser('adaptive-demo',parents=[theme_flags],
                      help='launch window-aware 12-column grid and rich table lab')
     a.add_argument('--orientation',choices=('system','portrait','landscape'),default='system')
-    a.add_argument('--touch-target-dp',type=int,default=48)
-    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.add_argument('--touch-target-dp',type=int,default=None)
+    a.add_argument('--grid-unit-dp',type=int,default=None)
     a.set_defaults(run=lambda args:_run_mobile('run_adaptive_demo',args))
     a=sub.add_parser('benchmark',parents=[theme_flags],
                      help='bounded Python-only performance measurements (not Android FPS)')
@@ -776,7 +781,8 @@ def main(argv=None):
         p.error('--max-progress-json-bytes must be 1024..8388608')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
     if args.command in ('adaptive-demo','layout-plan'):
-        if args.touch_target_dp<32 or args.grid_unit_dp<1:
+        if ((args.touch_target_dp is not None and args.touch_target_dp<32)
+            or (args.grid_unit_dp is not None and args.grid_unit_dp<1)):
             p.error('touch target must be >=32dp and grid unit must be >=1dp')
         if args.command=='layout-plan' and not 0<=args.items<=2000:
             p.error('--items must be in 0..2000')
