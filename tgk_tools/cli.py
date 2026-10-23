@@ -755,7 +755,8 @@ def main(argv=None):
     if args.command=='image' and args.max_bytes<=0:p.error('--max-bytes must be positive')
     for name in ('timeout','seconds'):
         value=getattr(args,name,0)
-        if not math.isfinite(value) or value<0:p.error(f'--{name} must be finite and non-negative')
+        if value is not None and (not math.isfinite(value) or value<0):
+            p.error(f'--{name} must be finite and non-negative')
     if args.command=='canvas-demo' and not 1<=args.fps<=60:p.error('--fps must be in 1..60')
     if args.command=='canvas-demo' and (args.width<=0 or args.height<=0 or args.width*args.height>4_194_304):
         p.error('canvas dimensions must be positive and at most 4194304 pixels')
