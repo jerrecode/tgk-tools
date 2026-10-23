@@ -713,8 +713,12 @@ def main(argv=None):
     a.add_argument('--items',type=int,default=8)
     a.add_argument('--spans',action='append',default=[],
                    metavar='COMPACT,MEDIUM,EXPANDED')
-    a.add_argument('--touch-target-dp',type=int,default=48)
-    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.add_argument('--touch-target-dp',type=int,default=None)
+    a.add_argument('--grid-unit-dp',type=int,default=None)
+    a.add_argument('--columns',type=int,default=None,
+                   help='native column count (1..32); defaults to saved layout')
+    a.add_argument('--span-units',type=int,default=12,
+                   help='virtual span units, independent of native columns')
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_layout_plan',args))
     a=sub.add_parser('style-catalog',parents=[theme_flags],
@@ -722,10 +726,12 @@ def main(argv=None):
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_style_catalog',args))
     a=sub.add_parser('adaptive-demo',parents=[theme_flags],
-                     help='launch window-aware 12-column grid and rich table lab')
+                     help='launch window-aware configurable-column grid and rich table lab')
     a.add_argument('--orientation',choices=('system','portrait','landscape'),default='system')
-    a.add_argument('--touch-target-dp',type=int,default=48)
-    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.add_argument('--touch-target-dp',type=int,default=None)
+    a.add_argument('--grid-unit-dp',type=int,default=None)
+    a.add_argument('--columns',type=int,default=None,
+                   help='native column count (1..32); defaults to saved layout')
     a.set_defaults(run=lambda args:_run_mobile('run_adaptive_demo',args))
     a=sub.add_parser('benchmark',parents=[theme_flags],
                      help='bounded Python-only performance measurements (not Android FPS)')
@@ -765,6 +771,10 @@ def main(argv=None):
     except (ValueError,OSError) as exc:
         print('tgk:',str(exc),file=sys.stderr)
         return 2
+    if args.command in ('adaptive-demo','layout-plan'):
+        for key in ('columns','touch_target_dp','grid_unit_dp'):
+            if getattr(args,key) is None:
+                setattr(args,key,settings['layout'][key])
     if args.command=='files' and args.max_items is None:
         args.max_items=settings['tools']['max_file_items']
     if args.command=='canvas-demo' and args.fps is None:
@@ -789,10 +799,12 @@ def main(argv=None):
         p.error('--max-progress-json-bytes must be 1024..8388608')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
     if args.command in ('adaptive-demo','layout-plan'):
+        if not 1<=args.columns<=32:p.error('--columns must be in 1..32')
         if args.touch_target_dp<32 or args.grid_unit_dp<1:
             p.error('touch target must be >=32dp and grid unit must be >=1dp')
-        if args.command=='layout-plan' and not 0<=args.items<=2000:
-            p.error('--items must be in 0..2000')
+        if args.command=='layout-plan':
+            if not 0<=args.items<=2000:p.error('--items must be in 0..2000')
+            if not 1<=args.span_units<=32:p.error('--span-units must be in 1..32')
     if args.command=='benchmark':
         if not 1<=args.nodes<=5000 or not 1<=args.iterations<=10000 or not 1<=args.samples<=10:
             p.error('benchmark bounds: --nodes 1..5000, --iterations 1..10000, --samples 1..10')
