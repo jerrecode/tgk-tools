@@ -599,6 +599,16 @@ def _run_benchmark_lazily(args):
     return run_benchmark(args)
 
 
+def _run_icons_build(args):
+    from tgk.icon_builder import build_assets
+    import json
+    result=build_assets(args.output,names=args.icon,raster=args.raster,
+                        overwrite=args.overwrite,low=args.low,mid=args.mid,
+                        high=args.high,max_icons=args.max_icons)
+    print(json.dumps(result,sort_keys=True,separators=(',',':')))
+    return 0
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
@@ -642,10 +652,25 @@ def main(argv=None):
     a.add_argument('--category',choices=('files','directories','actions','media','view','navigation'))
     a.add_argument('--path')
     a.add_argument('--directory',action='store_true')
+    a.add_argument('--detailed',action='store_true',
+                   help='use extension/special-file layered SVG asset ID')
     a.add_argument('--svg')
     a.add_argument('--svg-size',type=int,default=24)
     a.add_argument('--svg-color',default='#FFFFFF')
     a.set_defaults(run=_run_icons_lazily)
+    a=sub.add_parser('icons-build',parents=[theme_flags],
+                     help='atomic layered SVG/PNG/JPG/ICO pack generator')
+    a.add_argument('--output',default='.',help='parent directory for icons/')
+    a.add_argument('--icon',action='append',help='specific named recipe; repeatable')
+    a.add_argument('--raster',action='store_true',
+                   help='generate raster variants; requires optional CairoSVG + Pillow')
+    a.add_argument('--overwrite',action='store_true',
+                   help='replace an existing icon pack only after successful staging')
+    a.add_argument('--low',type=int,default=32)
+    a.add_argument('--mid',type=int,default=96)
+    a.add_argument('--high',type=int,default=256)
+    a.add_argument('--max-icons',type=int,default=1500)
+    a.set_defaults(run=_run_icons_build)
     a=sub.add_parser('typography',parents=[theme_flags],help='list or preview text presets')
     a.add_argument('--json',action='store_true')
     a.add_argument('--preview',action='store_true')
