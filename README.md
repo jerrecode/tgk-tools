@@ -68,6 +68,26 @@ planner uses the configured column count, grid units, touch minimum and both
 compact/expanded breakpoints unless individually overridden. It still
 operates on Android **window dp**, not unverified physical display properties.
 
+### Verify every installed TGK preset
+
+In addition to checking the selected settings, the installer runs a **read-only
+audit of every installed palette, typography and option-profile file**.
+A broken inactive preset is reported before it can unexpectedly break the UI.
+The audit reads at most 512 KiB per JSON file and has a maximum file-count
+budget. It preserves customized files, even when they contain mistakes.
+
+```sh
+tgk config init                    # create any missing presets; no overwrite
+tgk config validate                # validate selected configuration
+tgk config audit --compact         # validate all installed preset JSON files
+tgk config audit --max-files 1000  # explicit upper bound on scan
+```
+
+Malformed, oversized, missing or symlinked preset files cause a useful nonzero
+status; correct those saved files explicitly rather than silently replacing
+the user's customizations. During installation the same audit will stop the
+installer on invalid presets instead of claiming an entirely healthy setup.
+
 ## Update an existing installation
 
 For existing checkouts, update **the framework first**, followed by the
