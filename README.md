@@ -25,20 +25,20 @@ To install the framework directly without retaining the source checkout, run `sh
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.1.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.3.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.1.tar.gz
-cd tgk_bundle_v0.6.1
+tar -xzf tgk_bundle_v0.6.3.tar.gz
+cd tgk_bundle_v0.6.3
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.1.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.3.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.1.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.3.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -540,3 +540,33 @@ The canvas demo uses ImageView image/buffer pixel coordinates directly, followin
 Tools are in `tgk_tools/cli.py`; native widget, KV and canvas implementations remain upstream in TGK. Do not duplicate TGK internals here. Contributions should preserve the stdout result contract and support piped input. Run `python -m unittest discover -s tests -v` and `python -m compileall -q tgk_tools` before PR submission. Android UI tests and hardware benchmarks must be performed on a device.
 
 MIT license. See [AGENTS.md](AGENTS.md) for priorities.
+
+## Native-grid scaling and saved layout settings (0.6.3)
+
+`tgk layout-plan` and `tgk adaptive-demo` now use the saved
+`layout.columns`, `layout.grid_unit_dp` and `layout.touch_target_dp`
+from `~/.config/tgk/config.json` (including active option-profile defaults).
+Explicit CLI options override those values **without writing** to the saved
+configuration.
+
+```sh
+# Exact native columns, with design spans still specified in 12 logical units:
+tgk layout-plan --width-dp 393 --height-dp 852 \\
+  --columns 6 --span-units 12 --items 12 --json
+
+# Load persistent settings (including the selected accessibility profile):
+tgk config set --options accessibility_touch
+tgk layout-plan --width-dp 393 --height-dp 852 --json
+
+# Native Android GUI (needs Termux:GUI):
+tgk adaptive-demo --columns 6 --orientation system
+```
+
+The planner exposes both `grid.columns` (real Android GridLayout columns)
+and `grid.span_units` (virtual layout units), plus the resolved gutter in
+dp. A 12-unit span becomes six physical columns when `--columns 6` is
+selected; a span of four becomes two. Touch-target width and height minima
+are enforced on TGK native widgets, while `allow_small_touch_target=True`
+explicitly opts out for specialized controls. Hardware FPS, physical display
+size and system-bar insets remain unknown unless a supported Android API
+provides them.
