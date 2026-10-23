@@ -79,6 +79,8 @@ class MobileCLITests(unittest.TestCase):
           ('--width-dp','0','--height-dp','852'),
           ('--width-dp','393','--height-dp','852','--spans','6,6'),
           ('--width-dp','393','--height-dp','852','--spans','20,6,4'),
+          ('--width-dp','393','--height-dp','852','--spans','6,20,4'),
+          ('--width-dp','393','--height-dp','852','--spans','6,6,0'),
         ]
         for args in bad:
             with self.subTest(args=args):
