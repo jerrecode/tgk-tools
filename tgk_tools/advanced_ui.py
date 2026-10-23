@@ -93,12 +93,15 @@ class AdvancedLab:
                 self.n=0
                 self.dialog=None
                 super().__init__(theme=get_theme(),text_style=get_text_style(),
-                                 window_mode=args.mode)
+                                 window_mode=args.mode,
+                                 overlay_fallback=getattr(args,'fallback_normal',False))
             def build(self):
                 from tgk.layout_helpers import compact_action_bar
                 root=BoxLayout(orientation="vertical")
                 layer=FloatLayout(weight=1)
-                self.tabs=TabbedPanel(height=740)
+                self.tabs=TabbedPanel()
+                # Fill the allocated overlay viewport; fixed 740dp tabs
+                # leave empty space or overflow in compact Android windows.
                 home=_page("home","Home",_intro())
                 _make_button(home,"Open Popup",lambda:self.popup.open())
                 _make_button(home,"Cycle Theme",self.cycle_theme)
@@ -146,7 +149,7 @@ class AdvancedLab:
                 self.tabs.add_widget(canvas_page)
 
                 pages=_page("screens","Screens")
-                self.screens=ScreenManager()
+                self.screens=ScreenManager(weight=1)
                 for page in ("first","second","third"):
                     screen=Screen(name=page,title=page)
                     screen.add_widget(Label(text="Nested screen "+page,height=75))
