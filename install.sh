@@ -3,6 +3,19 @@
 set -eu
 cd "$(dirname "$0")"
 PYTHON="${PYTHON:-python}"
+INSTALL_MODE=copy
+for arg in "$@"; do
+  case "$arg" in
+    --copy) INSTALL_MODE=copy ;;
+    --editable) INSTALL_MODE=editable ;;
+    --help|-h)
+      printf '%s\n' 'Usage: sh ./install.sh [--copy|--editable]' \
+        '  --copy      Non-editable durable installation (default).' \
+        '  --editable  Use a live source checkout (development only).'
+      exit 0 ;;
+    *) printf 'Unknown installation option: %s\n' "$arg" >&2; exit 2 ;;
+  esac
+done
 
 command -v "$PYTHON" >/dev/null 2>&1 || {
   echo 'Missing Python: pkg install python' >&2
@@ -37,7 +50,12 @@ if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk imp
     exit 1
   fi
 fi
-"$PYTHON" -m pip install --no-build-isolation --no-deps --editable .
+if [ "$INSTALL_MODE" = copy ]; then
+  # A checkout or extracted archive may be deleted after this installation.
+  "$PYTHON" -m pip install --no-build-isolation --no-deps --force-reinstall .
+else
+  "$PYTHON" -m pip install --no-build-isolation --no-deps --editable .
+fi
 # Even when TGK 0.6 was already installed independently, populate any
 # missing user-owned preset files without replacing customized ones.
 "$PYTHON" -m tgk.config init
