@@ -149,6 +149,9 @@ def run_config(args):
     elif action=="validate":
         result={"valid":True,"config_path":str(config_path()),
                 "settings":load_config()}
+    elif action=="audit":
+        from tgk.config import audit_presets
+        result=audit_presets(require_builtins=True,max_files=args.max_files)
     elif action=="path":
         result={"config_path":str(config_path()),
                 "preset_root":str(config_home())}
