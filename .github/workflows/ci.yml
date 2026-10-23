@@ -13,6 +13,12 @@ jobs:
       - name: Install framework from default branch
         run: |
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
+          # Temporary integration gate for TGK 0.6 core PR #17.
+          if [ "${{ github.head_ref }}" = "feat/config-cli-install-20261023" ] || \
+             [ "${{ github.ref_name }}" = "feat/config-cli-install-20261023" ]; then
+            git -C /tmp/tgk fetch --depth=1 origin feat/persistent-config-presets-20261023
+            git -C /tmp/tgk checkout FETCH_HEAD
+          fi
           make -C /tmp/tgk build
           python -m pip install --no-deps /tmp/tgk
       - name: Install tools
