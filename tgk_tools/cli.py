@@ -246,19 +246,19 @@ def run_files(args):
         scroll=tg.NestedScrollView(activity,root)
         scroll.setheight(0);scroll.setlinearlayoutparams(1)
         control=tg.Button(activity,'Cancel',root);control.sendclickevent(True)
-        controls={control:('cancel',None)}
+        controls=[(control,'cancel',None)]
         def render(directory):
             nonlocal controls
-            controls={control:('cancel',None)}
+            controls=[(control,'cancel',None)]
             heading.settext((args.title or 'Select a path')+'\n'+str(directory))
             scroll.clearchildren()
             listbox=tg.LinearLayout(activity,scroll,vertical=True)
             if directory.parent!=directory and (boundary is None or directory!=boundary):
                 b=tg.Button(activity,'[..] Parent directory',listbox);b.sendclickevent(True)
-                controls[b]=('dir',directory.parent)
+                controls.append((b,'dir',directory.parent))
             if args.dirs_only:
                 b=tg.Button(activity,'[Select this directory]',listbox);b.sendclickevent(True)
-                controls[b]=('select',directory)
+                controls.append((b,'select',directory))
             try:
                 entries,truncated=_limited_file_entries(
                     directory,boundary=boundary,hidden=args.hidden,
@@ -270,7 +270,7 @@ def run_files(args):
             for path,is_dir in entries:
                 b=tg.Button(activity,('[DIR] ' if is_dir else '       ')+path.name,listbox)
                 b.sendclickevent(True)
-                controls[b]=('dir' if is_dir else 'select',path)
+                controls.append((b,'dir' if is_dir else 'select',path))
             if truncated:
                 tg.TextView(activity,f'Only first {args.max_items} entries shown',listbox)
         render(start)
@@ -278,7 +278,7 @@ def run_files(args):
             if event.type=='back':
                 activity.finish()
             if event.type=='click':
-                for button,(action,target) in tuple(controls.items()):
+                for button,action,target in tuple(controls):
                     if event.value.get('id')!=button:continue
                     if action=='dir':render(target)
                     elif action=='select':selection=target;activity.finish()
