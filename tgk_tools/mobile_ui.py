@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 from tgk.adaptive import ScreenMetrics,LayoutScale,arrange_spans
 from tgk.style_tokens import DEFAULT_STYLES
-from tgk.typography import PRESETS as TYPOGRAPHY
+from tgk.config import text_registry,settings,layout_scale as configured_layout_scale
 from tgk.theme import get_theme
 
 
@@ -43,8 +43,10 @@ def run_layout_plan(args):
     else:
         for _ in range(args.items):
             children.append(SimpleNamespace(span_compact=12,span_medium=6,span_expanded=4))
-    planner=LayoutScale(grid_unit_dp=args.grid_unit_dp,
-                        touch_target_dp=args.touch_target_dp)
+    configured=configured_layout_scale()
+    planner=LayoutScale(**dict(vars(configured),
+                               grid_unit_dp=configured.grid_unit_dp if args.grid_unit_dp is None else args.grid_unit_dp,
+                               touch_target_dp=configured.touch_target_dp if args.touch_target_dp is None else args.touch_target_dp))
     positions=arrange_spans(children,columns=cols,metrics=metrics)
     result={"source":"termuxgui" if args.connect else "simulated",
             "screen":metrics.to_dict(),
@@ -72,7 +74,7 @@ def run_style_catalog(args):
     styles={name:dataclasses.asdict(style) for name,style in DEFAULT_STYLES.items()}
     theme=get_theme()
     result={"theme":theme.name,"colors":dict(theme.colors),
-            "typography":{name:dict(value) for name,value in TYPOGRAPHY.items()},
+            "typography":{name:dict(vars(value)) for name,value in text_registry().items()},
             "components":styles}
     if args.json:print(json.dumps(result,indent=2))
     else:
@@ -87,8 +89,10 @@ def run_adaptive_demo(args):
     from tgk.adaptive_demo import AdaptiveLab
     from tgk.theme import get_theme
     from tgk.typography import get_text_style
-    scale=LayoutScale(grid_unit_dp=args.grid_unit_dp,
-                      touch_target_dp=args.touch_target_dp)
+    configured=configured_layout_scale()
+    scale=LayoutScale(**dict(vars(configured),
+                             grid_unit_dp=configured.grid_unit_dp if args.grid_unit_dp is None else args.grid_unit_dp,
+                             touch_target_dp=configured.touch_target_dp if args.touch_target_dp is None else args.touch_target_dp))
     app=AdaptiveLab(theme=get_theme(),text_style=get_text_style(),
                     layout_scale=scale,orientation_mode=args.orientation)
     app.run()
