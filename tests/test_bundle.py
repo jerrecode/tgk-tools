@@ -80,6 +80,20 @@ class OfflineBundleTests(unittest.TestCase):
             self.assertEqual(original.read_bytes(), b'keep')
             self.assertTrue(output.is_symlink())
 
+    def test_normalized_output_symlink_is_also_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            core, tools = self.sources(base)
+            original = base/'original.tgz'
+            original.write_bytes(b'keep')
+            link = base/'artifact.tgz'
+            link.symlink_to(original)
+            output = base/'missing'/'..'/'artifact.tgz'
+            with self.assertRaisesRegex(ValueError, 'symlink'):
+                build(core, tools, output)
+            self.assertTrue(link.is_symlink())
+            self.assertEqual(original.read_bytes(), b'keep')
+
     @unittest.skipUnless(hasattr(os, 'mkfifo'), 'POSIX special file test')
     def test_special_source_files_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
