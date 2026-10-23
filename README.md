@@ -25,20 +25,20 @@ To install the framework directly without retaining the source checkout, run `sh
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.4.0.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.5.0.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.4.0.tar.gz
-cd tgk_bundle_v0.4.0
+tar -xzf tgk_bundle_v0.5.0.tar.gz
+cd tgk_bundle_v0.5.0
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.4.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.5.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.4.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.5.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -254,7 +254,7 @@ streaming and format-specific processors; no broad protocol support or
 full media playback is claimed. Benchmarks and power use on Android remain
 to be measured.
 
-## Responsive Android UI and design-system CLI (TGK 0.4.0)
+## Responsive Android UI and design-system CLI (TGK 0.5.0)
 
 The new commands expose a **12-column Android window-dp grid**, extended
 component palettes, typography hierarchy, styled tables and configurable
@@ -329,6 +329,61 @@ node-iterations. The Clock benchmark processes pending callbacks in chunks of
 128 to exercise GUI-tick fairness. No external network or shell subprocess
 is started. `tgk doctor --connect` remains the separate native Termux:GUI
 connection validation entrypoint.
+
+## Mobile-sized Close / Cancel controls
+
+All shell dialogs and viewers use compact action footers instead of stretching
+Close or Cancel buttons across the screen. A 48dp-high button receives a
+text-bounded width, a weighted spacer on its left, and 12dp bottom/right
+margins. Files and progress tools use Termux:GUI native LinearLayouts;
+TGK-based prompt/confirm/choose/show and rich typography UI use the matching
+framework widget footer.
+
+Scrollable content takes the remaining vertical space so Close remains
+reachable near the screen's bottom-right, even on short portrait phones.
+Use Android's Back action as an alternative. Per-object `--object-color`
+overrides continue to apply to Close/Cancel roles.
+
+## Layered icon builder (TGK 0.5.0)
+
+The icon catalog now supports hierarchical SVG recipes with reusable base
+shapes and foreground modifiers such as text lines, code markers, pens,
+terminal prompt, archive zippers, locks, badges and automatically scaled
+filetype labels. This includes README, LICENSE, AGENTS, INSTALL, INFO, MAKE,
+REQ and uppercase labels for Python, JSONL, HTML, CSS, XML, YAML, TOML,
+TeX, C, H, JavaScript, Java and many more extensions.
+
+```sh
+# Backward-compatible general classification
+tgk icons --path README.md --json
+# Specific filename-layered SVG design
+tgk icons --path README.md --detailed --json
+tgk icons --svg filename_readme_md > readme.svg
+
+# Build and validate all known SVG combinations before publication
+tgk icons-build --output /tmp --overwrite
+# Limit the build to specific icon recipes
+tgk icons-build --output /tmp --overwrite \
+  --icon file_ext_jsonl --icon filename_agents_md --icon file_document
+
+# Build low/mid/high PNG and JPEG, plus ICO (CairoSVG + Pillow required)
+python -m pip install cairosvg pillow
+tgk icons-build --output /tmp --raster --overwrite
+```
+
+The output is `/tmp/icons/svg`, `/tmp/icons/ico`,
+`/tmp/icons/low_res`, `/tmp/icons/mid_res`,
+`/tmp/icons/high_res` and `/tmp/icons/manifest.json`. The default
+raster dimensions are 32, 96 and 256 pixels, and ICO contains several
+small resolutions. A pure SVG build leaves raster directories empty.
+
+The generator validates **every** recipe before writing a staging
+directory, then publishes the whole icon pack atomically after success.
+Existing output cannot be overwritten without an explicit flag. No
+user-provided strings are evaluated as code, and generated names are
+validated. A GitHub Actions workflow provides a complete downloadable
+`tgk-layered-icon-pack` asset artifact; device raster quality remains
+subject to font/rendering differences.
 
 ## Shell commands
 

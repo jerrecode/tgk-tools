@@ -1,0 +1,72 @@
+"""Shell CLI: layered SVG build, manifest, type detection and input bounds."""
+from contextlib import redirect_stdout,redirect_stderr
+from io import StringIO
+from pathlib import Path
+import json
+import tempfile
+import unittest
+
+from tgk_tools.cli import main
+
+
+class IconBuildCLITests(unittest.TestCase):
+    def run_cli(self,*argv):
+        output=StringIO();errors=StringIO()
+        with redirect_stdout(output),redirect_stderr(errors):
+            code=main(list(argv))
+        return code,output.getvalue(),errors.getvalue()
+
+    def test_selected_icons_generate_only_svg_and_empty_raster_dirs(self):
+        with tempfile.TemporaryDirectory() as root:
+            code,output,error=self.run_cli('icons-build','--output',root,
+                  '--icon','file_ext_jsonl','--icon','filename_agents_md')
+            self.assertEqual(code,0,error)
+            data=json.loads(output)
+            self.assertEqual(data['svg_files'],2)
+            icons=Path(root)/'icons'
+            self.assertTrue((icons/'svg'/'file_ext_jsonl.svg').exists())
+            self.assertTrue((icons/'svg'/'filename_agents_md.svg').exists())
+            for folder in ('ico','low_res','mid_res','high_res'):
+                self.assertEqual(list((icons/folder).iterdir()),[])
+            self.assertEqual(len(json.loads((icons/'manifest.json').read_text())['icons']),2)
+
+    def test_rebuilding_existing_output_requires_explicit_overwrite(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.assertEqual(self.run_cli('icons-build','--output',root,
+                            '--icon','file')[0],0)
+            code,out,err=self.run_cli('icons-build','--output',root,
+                                      '--icon','folder')
+            self.assertEqual(code,2)
+            self.assertFalse(out)
+            self.assertIn('exists',err.lower())
+            self.assertEqual(self.run_cli('icons-build','--output',root,
+                            '--icon','folder','--overwrite')[0],0)
+            self.assertFalse((Path(root)/'icons'/'svg'/'file.svg').exists())
+
+    def test_detailed_path_command_keeps_backward_compatibility(self):
+        code,out,err=self.run_cli('icons','--path','README.md','--json')
+        self.assertEqual(code,0,err)
+        self.assertEqual(json.loads(out)['icon'],'markdown')
+        code,out,err=self.run_cli('icons','--path','README.md','--detailed','--json')
+        self.assertEqual(code,0,err)
+        self.assertEqual(json.loads(out)['icon'],'filename_readme_md')
+        code,out,err=self.run_cli('icons','--svg','file_ext_py')
+        self.assertEqual(code,0,err)
+        self.assertIn('<svg',out)
+        self.assertIn('>PY</text>',out)
+
+    def test_missing_or_unsafe_icon_selection_fails_without_partial_output(self):
+        with tempfile.TemporaryDirectory() as root:
+            code,out,err=self.run_cli('icons-build','--output',root,
+                                      '--icon','file','--icon','../escape')
+            self.assertEqual(code,2)
+            self.assertFalse(out)
+            self.assertFalse((Path(root)/'icons').exists())
+            code,out,err=self.run_cli('icons-build','--output',root,
+                                      '--icon','file','--max-icons','0')
+            self.assertEqual(code,2)
+            self.assertFalse((Path(root)/'icons').exists())
+
+
+if __name__=="__main__":
+    unittest.main()

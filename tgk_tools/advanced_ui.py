@@ -9,7 +9,8 @@ from tgk.theme import get_theme
 
 def run_icons(args):
     if args.path:
-        name=icon_for_path(args.path,is_dir=True if args.directory else None)
+        name=icon_for_path(args.path,is_dir=True if args.directory else None,
+                           detailed=getattr(args,"detailed",False))
         if args.json:print(json.dumps({"path":args.path,"icon":name,"glyph":glyph(name)},
                                      ensure_ascii=False))
         else:print(name+" "+glyph(name))
@@ -51,7 +52,8 @@ def run_typography(args):
 
 def _make_button(parent,text,callback):
     from tgk import Button
-    button=Button(text=text,height=46)
+    from tgk.layout_helpers import action_width
+    button=Button(text=text,height=48,width=action_width(text))
     button.bind(on_release=lambda *_:callback())
     parent.add_widget(button)
     return button
@@ -89,13 +91,14 @@ class AdvancedLab:
                 super().__init__(theme=get_theme(),text_style=get_text_style(),
                                  window_mode=args.mode)
             def build(self):
-                root=FloatLayout()
+                from tgk.layout_helpers import compact_action_bar
+                root=BoxLayout(orientation="vertical")
+                layer=FloatLayout(weight=1)
                 self.tabs=TabbedPanel(height=740)
                 home=_page("home","Home",_intro())
                 _make_button(home,"Open Popup",lambda:self.popup.open())
                 _make_button(home,"Cycle Theme",self.cycle_theme)
                 _make_button(home,"Go to Canvas",lambda:self.tabs.switch("canvas"))
-                _make_button(home,"Close",self.stop)
                 self.tabs.add_widget(home)
 
                 icon_page=_page("icons","Icons")
@@ -147,7 +150,7 @@ class AdvancedLab:
                     self.screens.add_widget(screen)
                 pages.add_widget(self.screens)
                 self.tabs.add_widget(pages)
-                root.add_widget(self.tabs)
+                layer.add_widget(self.tabs)
 
                 self.popup=Popup(visible=False,width=330,height=260,
                                  padding=10,spacing=8,background_color="#243452")
@@ -156,7 +159,9 @@ class AdvancedLab:
                     text="Live popup content using an existing view. Not yet a full focus-trapping modal.",
                     style="small",height=100))
                 _make_button(self.popup,"Close Popup",self.popup.dismiss)
-                root.add_widget(self.popup)
+                layer.add_widget(self.popup)
+                root.add_widget(layer)
+                root.add_widget(compact_action_bar("Close",self.stop,margin=12))
                 if args.start_page not in ("home","icons","text","canvas","screens"):
                     raise ValueError("unknown starting page")
                 self.tabs.switch(args.start_page)
@@ -186,8 +191,8 @@ class TypographyPreview:
                         text=f"{name}: The quick brown fox jumps over 0123456789.",
                         style=name,height=82))
                 scroll.add_widget(stack);root.add_widget(scroll)
-                close=Button(text="Close",height=52)
-                close.bind(on_release=lambda *_:self.stop());root.add_widget(close)
+                from tgk.layout_helpers import compact_action_bar
+                root.add_widget(compact_action_bar("Close",self.stop,margin=12))
                 return root
         Showcase(text_style=get_text_style(),theme=get_theme()).run()
 
