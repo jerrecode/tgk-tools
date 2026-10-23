@@ -509,7 +509,7 @@ def main(argv=None):
     a=sub.add_parser('canvas-demo',parents=[theme_flags],help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=25);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
     a=sub.add_parser('themes',parents=[theme_flags],help='list theme presets and semantic roles')
     a.add_argument('--json',action='store_true');a.set_defaults(run=run_themes)
-    a=sub.add_parser('demo',parents=[theme_flags],help='run 13 graduated UI and theme studio labs')
+    a=sub.add_parser('demo',parents=[theme_flags],help='run 16 graduated UI and theme studio labs')
     a.add_argument('--scenario',default='12_studio',help='scenario code, see --list')
     a.add_argument('--list',action='store_true');a.set_defaults(run=run_demo)
     args=p.parse_args(argv)
