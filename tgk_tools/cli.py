@@ -480,15 +480,18 @@ def run_doctor(args):
 def run_themes(args):
     """List available named presets or expose semantic roles as JSON."""
     import json
-    from tgk.theme import PRESETS,ROLES,DEFAULT_NAME,resolve_theme
+    from tgk.theme import ROLES,resolve_theme
+    from tgk.config import color_registry,settings
+    presets=color_registry()
+    default=settings()['defaults']['palette']
     if args.json:
-        print(json.dumps({"default":DEFAULT_NAME,"roles":list(ROLES),
+        print(json.dumps({"default":default,"roles":list(ROLES),
                           "presets":{name:resolve_theme(name).to_dict()["colors"]
-                                     for name in PRESETS}},
+                                     for name in presets}},
                          ensure_ascii=False,indent=2))
     else:
-        print("TGK presets (default: "+DEFAULT_NAME+"):")
-        for name in PRESETS:print("  "+name)
+        print("TGK presets (default: "+default+"):")
+        for name in presets:print("  "+name)
         print("Roles: "+", ".join(ROLES))
     return 0
 
