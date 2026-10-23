@@ -103,6 +103,35 @@ class ConfigCLITests(unittest.TestCase):
         self.assertEqual(out,"")
         self.assertIn("lowercase",error)
 
+    def test_multi_selector_set_is_one_atomic_transaction(self):
+        initialize_config()
+        from tgk.config import update_config,load_config
+        update_config("io","workers",5)
+        status,out,err=self.run_cmd(
+            "config","set","--palette","ocean","--typography","title_h2",
+            "--options","battery_saver","--compact")
+        self.assertEqual(status,0,err)
+        result=json.loads(out)["settings"]
+        self.assertEqual(result["ui"]["option_profile"],"battery_saver")
+        self.assertEqual(result["ui"]["theme"],"ocean")
+        self.assertEqual(result["ui"]["text_style"],"title_h2")
+        self.assertEqual(result["io"]["workers"],5)
+        self.assertEqual(result["runtime"]["clock_callbacks_per_tick"],48)
+        stored=json.loads((self.home/"config.json").read_text())
+        self.assertEqual(stored["ui"]["option_profile"],"battery_saver")
+        self.assertEqual(load_config(),result)
+
+    def test_invalid_combination_does_not_partially_update_defaults(self):
+        initialize_config()
+        previous=(self.home/"config.json").read_bytes()
+        status,out,error=self.run_cmd("config","set",
+            "--palette","forest","--typography","does_not_exist")
+        self.assertEqual(status,2)
+        self.assertEqual(out,"")
+        self.assertTrue(error)
+        self.assertEqual((self.home/"config.json").read_bytes(),previous)
+        self.assertFalse(list(self.home.glob(".tgk-config-*")))
+
     def test_corrupt_config_allows_init_recovery_and_fails_other_commands(self):
         initialize_config()
         (self.home/"config.json").write_text("{ not-json",encoding="utf-8")
