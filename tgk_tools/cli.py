@@ -488,16 +488,20 @@ def run_doctor(args):
 def run_themes(args):
     """List available named presets or expose semantic roles as JSON."""
     import json
-    from tgk.theme import PRESETS,ROLES,get_theme,resolve_theme
-    selected=get_theme().name
+    from tgk.theme import ROLES,get_theme
+    from tgk.config import load_config
+    from tgk_tools.preset_catalog import palette_entries
+    palettes=palette_entries()
+    selected=(args.theme or (get_theme().name if args.theme_file else
+                            load_config()["ui"]["theme"]))
     if args.json:
         print(json.dumps({"default":selected,"roles":list(ROLES),
-                          "presets":{name:resolve_theme(name).to_dict()["colors"]
-                                     for name in PRESETS}},
+                          "presets":{name:theme.to_dict()["colors"]
+                                     for name,theme in palettes.items()}},
                          ensure_ascii=False,indent=2))
     else:
         print("TGK presets (default: "+selected+"):")
-        for name in PRESETS:print("  "+name)
+        for name in palettes:print("  "+name)
         print("Roles: "+", ".join(ROLES))
     return 0
 
@@ -519,7 +523,9 @@ def _configure_theme(args,parser):
     from tgk.config import configured_theme,configured_text_style
     try:
         chosen=load_theme(args.theme_file) if args.theme_file else configured_theme()
-        if args.theme:chosen=resolve_theme(args.theme)
+        if args.theme:
+            from tgk_tools.preset_catalog import load_palette_named
+            chosen=load_palette_named(args.theme)
         overrides={}
         for item in args.color:
             if '=' not in item:raise ValueError("--color requires ROLE=#HEX")
@@ -537,7 +543,9 @@ def _configure_theme(args,parser):
             if value is not None:style_options[field]=value
         for flag in ("italic","underline","strike"):
             if getattr(args,flag):style_options[flag]=True
-        set_text_style(args.text_style or configured_text_style(),**style_options)
+        from tgk_tools.preset_catalog import load_text_named
+        style=load_text_named(args.text_style) if args.text_style else configured_text_style()
+        set_text_style(style,**style_options)
         args.object_fonts={}
         allowed={"root","heading","input","button","cancel","image",
                  "canvas","progress","*"}
@@ -730,9 +738,9 @@ def main(argv=None):
     a.add_argument('operation',choices=('hash','copy','download','probe'))
     a.add_argument('source',help='local path (or HTTPS URL for download)')
     a.add_argument('target',nargs='?',help='destination for copy or download')
-    a.add_argument('--chunk-bytes',type=int,default=65536)
-    a.add_argument('--max-bytes',type=int,default=268435456)
-    a.add_argument('--timeout',type=float,default=30)
+    a.add_argument('--chunk-bytes',type=int,default=None,help='default: saved io.chunk_bytes')
+    a.add_argument('--max-bytes',type=int,default=None,help='default: saved io.max_bytes')
+    a.add_argument('--timeout',type=float,default=None,help='default: saved io.timeout')
     a.add_argument('--max-metadata-bytes',type=int,default=8388608)
     a.add_argument('--overwrite',action='store_true')
     a.add_argument('--allow-http',action='store_true',help='allow insecure HTTP explicitly')
@@ -824,7 +832,7 @@ def main(argv=None):
                    metavar='SECTION.KEY',
                    help='reset one selected property to built-in default')
     a.add_argument('--max-files',type=int,default=2000,
-                   help='audit at most N preset files (1..5000; default 2000)')
+                   help='audit/list at most N preset entries (1..5000; default 2000)')
     from tgk_tools.config_cli import run_config
     a.set_defaults(run=run_config)
     args=p.parse_args(argv)
@@ -874,6 +882,9 @@ def main(argv=None):
         for name in ('low','mid','high','max_icons'):
             if getattr(args,name) is None:setattr(args,name,settings['icons'][name])
         if args.raster is None:args.raster=settings['icons']['raster']
+    if args.command=='pipeline':
+        for name in ('chunk_bytes','max_bytes','timeout'):
+            if getattr(args,name) is None:setattr(args,name,settings['io'][name])
     _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
     if args.command=='image' and args.max_bytes<=0:p.error('--max-bytes must be positive')

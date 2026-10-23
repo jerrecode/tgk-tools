@@ -8,7 +8,6 @@ from types import SimpleNamespace
 from tgk.adaptive import ScreenMetrics,LayoutScale,arrange_spans
 from tgk.sizing import SizeSpec,resolve_size
 from tgk.style_tokens import DEFAULT_STYLES
-from tgk.typography import PRESETS as TYPOGRAPHY
 from tgk.theme import get_theme
 
 
@@ -128,10 +127,12 @@ def run_size_plan(args):
 
 def run_style_catalog(args):
     import dataclasses
+    from tgk_tools.preset_catalog import text_entries
     styles={name:dataclasses.asdict(style) for name,style in DEFAULT_STYLES.items()}
     theme=get_theme()
     result={"theme":theme.name,"colors":dict(theme.colors),
-            "typography":{name:dict(value) for name,value in TYPOGRAPHY.items()},
+            "typography":{name:dataclasses.asdict(value)
+                          for name,value in text_entries().items()},
             "components":styles}
     if args.json:print(json.dumps(result,indent=2))
     else:

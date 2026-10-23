@@ -1,0 +1,67 @@
+# TGK Tools all-remote-branch audit
+
+Baseline origin/main 9893edd. Audited every origin remote branch (42 excluding symbolic HEAD/main). Used merge-base/ancestry, all pairwise branch containment, commit/changed-path inventories, patch cherry, exact blob comparison, AST function comparison, and manual code/test review. git cherry alone marks squashed commits as unique and is not evidence of missing work. JSON companion records all raw evidence.
+
+## Concrete recoveries and bugs
+
+1. Dormant configured-presets branch: missing read-only installed palette/text catalog and explicit named palette resolution. Edited built-in palette files are used by saved defaults but ignored by `themes --json` and explicit `--theme`; style catalog always returns built-in font values. Add safe bounded catalog scanning and current _read_json/validators, no initialization side effects. Also enable explicit custom text-style (helper existed but was not wired on dormant branch).
+2. feat/config-cli-install: omitted pipeline flags should inherit saved io settings; main uses constant defaults. Core configured_io_limits exists but unused. Current CLI can persist io.max_bytes=512 then hash 1024 bytes successfully without --max-bytes. Restore this semantic using current schema with explicit flags highest priority.
+3. Current config list silently filters invalid stems and has unbounded glob memory/latency; use bounded regular-file nonlinked scanner. Preserve main full audit doctor behavior.
+4. Atomic-v2 positional `config edit/reset` is intentionally superseded by current batch edit/reset-field; do not restore stale schema/APIs.
+
+## Pairwise relationships
+
+Exact duplicate branch heads: feature/config-doctor-locked-installer-20261023 = fix/rebase-config-doctor-20261023 (094c0a4). fix/termux-icon-output-and-overlay-20261023 is ancestor of fix/termux-ui-preserved-20261023. Ancestor-main branch heads are fix/doctor-exhaustive-presets-and-safe-list-v068-20261023 (6aae4d6) and fix/saved-touch-insets-size-plan-20261023 (091a2eb). Other remote heads diverge before squash commits; JSON includes full branch containment matrix.
+
+## Per branch
+
+| Branch | Head / common base | Classification | Code/test evidence |
+|---|---|---|---|
+| `dependabot/github_actions/actions/setup-python-6` | `e060a16` / `8597c1f` | Squashed | 4bedaa1 already changes setup-python to v6; current workflow retains v6. |
+| `feat/config-cli-install-20261023` | `20a906e` / `806a7e4` | Partly superseded; unique saved pipeline budgets | Earlier TGK_CONFIG_DIR/defaults schema and positional set API superseded by ef97d1d/d9277d2. Icon dimensions/defaults retained. Its run_pipeline inherits saved io max_bytes/chunk_bytes/timeout/workers/pending; main hardcodes parser defaults and ignores all saved pipeline budgets. Recover semantics against current schema, not old source. Component list available through style-catalog. |
+| `feat/doctor-capabilities-and-fresh-bundle-20261023` | `813b902` / `0910d78` | Squashed | 3653793 retains exact tests/test_doctor_capabilities.py and run_doctor version/index/bounded-I/O/ffmpeg/ffprobe fields. |
+| `feature/adaptive-layout-style-cli-20261023` | `4327d0f` / `3653793` | Squashed and advanced | 94cd4a3 retains exact tests/test_mobile_cli.py and four examples; later saved scales and columns improve planner. |
+| `feature/advanced-ui-typography-icons-20261023` | `91a88a9` / `89f01c6` | Squashed and advanced | 4827712 retains exact advanced CLI tests and seven examples; newer Termux lifecycle/titlebar changes supersede old advanced_ui implementation. |
+| `feature/bounded-pipeline-cli-20261023` | `d020b0c` / `4827712` | Squashed | 0910d78 retains exact pipeline_cli.py, tests/test_pipeline_cli.py and three pipeline examples. |
+| `feature/config-doctor-locked-installer-20261023` | `094c0a4` / `d9277d2` | Squashed; duplicate head | Identical head 094c0a4 to fix/rebase-config-doctor. 2532023 retains exact doctor tests; later audit adds exhaustive installed preset validation. |
+| `feature/config-inspection-cli-20261023` | `8e2fbde` / `806a7e4` | Squashed and advanced | ef97d1d retains config show/init/path/validate/preset inspection and persisted tool budgets; modern batch edits/profiles/doctor/audit supersede older implementation. |
+| `feature/config-preset-cli-20261023` | `5447f7f` / `806a7e4` | Superseded alternate schema | Ancient config.settings/defaults/color_registry schema and --json config flag incompatible with current config_home/load_config/ui schema. Current main covers selection, override precedence, no overwrite, validation and listing through current tests. |
+| `feature/config-settings-cli-atomic-20261023-v2` | `4d11428` / `9df5648` | Superseded alternate CLI | Current d9277d2 batch config edit --field SECTION.KEY=JSON and --reset-field replace branch positional config edit/reset; core patch_config atomic transaction + pinning retained. Do not reinstate old update_settings/update_config API. |
+| `feature/install-icon-catalog-bundle-20261023` | `c3217b8` / `6aae4d6` | Squashed | fe4e8fe; workflow, pyproject, shell installer tests and version exactly match head; later bundle atomic publishing intentionally newer. |
+| `feature/performance-benchmark-cli-20261023` | `23f7cfa` / `94cd4a3` | Squashed | 0de908d retains exact bench.py, benchmark tests and example. |
+| `feature/persisted-responsive-columns-20261023` | `9c02d2e` / `84a70df` | Squashed and advanced | 88c3011 retains exact tests/test_configured_columns.py; saved scales and default spans retained; later breakpoint/touch fixes newer. |
+| `feature/persistent-config-cli-20261023` | `9b2a1e1` / `806a7e4` | Superseded alternate schema | config.paths/settings/init_config/clear_cache and defaults.palette schema replaced by current config_path/load_config/initialize_config/ui schema; all user-facing initialization, preservation, paths and layout precedence behavior retained. |
+| `feature/size-plan-current-main-20261023` | `d4c696d` / `c7b6830` | Superseded alternate SizeSpec API | 091a2eb adds size-plan with the current item-width/height flag/output contract; 44b8d85/d9277d2 provide saved touch and measured insets. Missing branch-specific test filename tests outdated alternate CLI flags, not missing functionality. |
+| `feature/size-plan-current-tools-main-20261023` | `034f5b2` / `c7b6830` | Squashed and advanced | 091a2eb retains exact tests/test_sizing_cli.py; later saved touch/insets updates improve it. |
+| `feature/sizing-preview-configured-grid-v065-20261023` | `4ec2df3` / `84a70df` | Superseded combined predecessor | Overlaps separate columns and SizeSpec efforts; 88c3011/091a2eb retain both features with current API; later touch/insets/breakpoints improve them. |
+| `feature/themes-and-scenario-gallery-20261023` | `ae67223` / `da876d8` | Squashed and advanced | 89f01c6 retains exact theme and canvas tests plus eight original examples; 9893edd intentionally replaces multi-Activity example chains with Gallery/workflow. |
+| `fix/bounded-shell-input` | `8666ca1` / `40d04f6` | Squashed | bb69d75 retains exact input contract tests; bound stdin reads and GUI resource validation remain present. |
+| `fix/bundle-canonical-symlink-20261023` | `c60d6b0` / `62848c4` | Patch-equivalent squashed | c57bae2; scripts/build_bundle.py and tests/test_bundle.py byte-identical to branch. |
+| `fix/canvas-image-space-touch` | `03c29cf` / `4188d74` | Squashed and advanced | 40d04f6 retains image-space mapping and destroy lifecycle guard; canvas tests later use semantic palette colors. |
+| `fix/compact-shell-actions-20261023` | `ebbbd15` / `0de908d` | Squashed and advanced | 806a7e4 retains exact mobile_actions.py and tests/test_mobile_actions.py plus icon build feature; later file picker/titlebar fixes intentionally newer. |
+| `fix/config-cli-atomic-profiles-20261023` | `99fae86` / `9df5648` | Superseded transaction iteration | d43ca34/84a70df and later patch_config implementation retain one atomic profile/default transaction and selector persistence. Branch tests differ as current core transaction contract advanced. |
+| `fix/config-cli-core-transactions-20261023` | `b25774a` / `d43ca34` | Squashed and advanced | 84a70df retains exact persistent config CLI tests; later patch_config adds batch edits/pinning and validation. |
+| `fix/config-default-selection-20261023` | `9bff0a3` / `ef97d1d` | Squashed and advanced | 9df5648 retains exact config defaults tests; manual atomic tempfile implementation superseded by core locked patch_config. |
+| `fix/config-selector-effective-profiles-20261023` | `e6dc697` / `9df5648` | Squashed and advanced | d43ca34 retains exact tests/test_config_selector.py; numeric defaults do not freeze profile snapshots; manual persistence superseded by core transaction. |
+| `fix/configured-presets-tools-061-20261023` | `cb5b8c1` / `ef97d1d` | Partial unique recovery required | Saved layout defaults retained. Entire preset_catalog.py absent: main themes/style-catalog omit installed palette/typography catalog changes and explicit --theme resolves builtins only. Recover safe bounded installed catalog semantics against current loaders; do not restore old LayoutScale logic. |
+| `fix/doctor-exhaustive-presets-and-safe-list-v068-20261023` | `6aae4d6` / `6aae4d6` | Ancestor | 6aae4d6 is an ancestor of main. Note safe-list protection resides in core audit; tools config list still uses unbounded glob and silent invalid-name filtering. |
+| `fix/durable-default-install-20261023` | `d32ff33` / `88c3011` | Squashed and advanced | c7b6830 retains durable copied installation and --editable option; newer core version/icon initialization and bundle security must remain. |
+| `fix/file-picker-bounded-listing-20261023` | `2c37c99` / `dc50db0` | Squashed and advanced | da876d8 retains exact tests/test_file_listing.py; bounded heap and direct event comparisons retained; current native layout tests advanced. |
+| `fix/layout-plan-config-cli-20261023` | `b5993de` / `44b8d85` | Squashed | d9277d2 retains exact tests/test_config_edit_layout_plan.py and mobile_ui.py; batch fields/reset, saved breakpoints/touch, reported theme/text selection retained. |
+| `fix/offline-bundle-boundaries-20261023` | `8397e08` / `fe4e8fe` | Squashed and advanced | 62848c4 retains README/check_bundle_install/plan exactly; c57bae2 adds normalized symlink output guard. |
+| `fix/preset-audit-cli-installer-20261023` | `9550d0d` / `d9277d2` | Squashed and reconciled | 6aae4d6 retains exact audit tests; alternative based on d9277d2 reconciled with doctor branch through fix/reconcile-preset-audit. |
+| `fix/progress-bounded-snapshot-20261023` | `27db7d8` / `dc50db0` | Squashed | e538327 retains exact tests/test_progress_input.py; bounded JSON, finite numbers, overflow handling and completion-reset behavior remain. |
+| `fix/rebase-config-doctor-20261023` | `094c0a4` / `d9277d2` | Squashed; duplicate head | Exact same 094c0a4 as feature/config-doctor-locked-installer; doctor tests byte-identical current main; squash 2532023. |
+| `fix/reconcile-preset-audit-20261023` | `8d911b0` / `2532023` | Squashed | 6aae4d6 retains exact audit tests and config_cli.py; combines previous doctor and full preset audit. |
+| `fix/reproducible-verified-bundles` | `19892bc` / `bb69d75` | Squashed and advanced | dc50db0 retains SOURCE_DATE_EPOCH/reproducible archive and delete-sources verification; later atomic publishing/source boundary guards intentionally newer. |
+| `fix/saved-touch-insets-size-plan-20261023` | `091a2eb` / `091a2eb` | Ancestor | 091a2eb is directly an ancestor of main; later 44b8d85 further adds saved touch/measured insets. |
+| `fix/size-plan-persisted-touch-and-update-docs-20261023` | `f2b4aec` / `091a2eb` | Squashed | 44b8d85 retains exact tests/test_size_plan_saved_touch.py; current mobile_ui adds later saved breakpoint repair. |
+| `fix/size-plan-saved-touch-and-update-guide-20261023` | `52e1c0d` / `091a2eb` | Superseded alternative implementation | 44b8d85 implements same saved touch + explicit measured inset behavior through tests/test_size_plan_saved_touch.py; alternate test filename/metrics overrides are not unique behavior. main native _metrics_for preserves configuration; run_size_plan explicit overrides after probe. |
+| `fix/termux-icon-output-and-overlay-20261023` | `973f6b9` / `fe4e8fe` | Superseded by preserved branch; squashed | Ancestor of fix/termux-ui-preserved; 9893edd includes all fifteen feature/fix commits plus SVG raster override, lazy gallery compat and titlebar fix. |
+| `fix/termux-ui-preserved-20261023` | `e206b7b` / `fe4e8fe` | Squashed | 9893edd; all thirteen touched files are byte-identical main, while main additionally has bundle security changes. Full branch preservation already true at tree level. |
+
+## Consolidation outcome
+
+Current main remains the content base. Useful missing behavior is ported in focused changes; obsolete schemas and private API variants stay superseded. Original branch tips are retained as merge parents after this audit. The final integration must use a merge commit, not squash, to preserve that ancestry. No branch deletion or force push is performed.
+
+Recovered installed/edited custom palette and typography discovery/selection, bounded configuration listing, and saved pipeline budgets with explicit override priority. Release metadata and offline installer are aligned at0.6.10. Regression tests cover malformed catalog/default files through the supported core version.

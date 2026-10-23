@@ -27,19 +27,15 @@ def _apply_defaults(args):
             "config_path":str(config_path())}
 
 
-def _list_presets():
+def _list_presets(max_files=2000):
     from tgk.config import OPTIONS
     from tgk.theme import PRESETS
     from tgk.typography import PRESETS as TEXT_PRESETS
-    result={"palettes":sorted(PRESETS),"typography":sorted(TEXT_PRESETS),
-            "options":sorted(OPTIONS)}
-    for folder,key in (("palettes","palettes"),("text_styles","typography"),
-                       ("options","options")):
-        base=config_home()/folder
-        if base.is_dir():
-            result[key]=sorted(set(result[key])|{
-                file.stem for file in base.glob("*.json") if file.stem.isidentifier()})
-    return result
+    from tgk_tools.preset_catalog import preset_names
+    catalogs=preset_names({"palettes":PRESETS,"text_styles":TEXT_PRESETS,
+                           "options":OPTIONS},max_files=max_files)
+    return {"palettes":catalogs["palettes"],"typography":catalogs["text_styles"],
+            "options":catalogs["options"]}
 
 
 def _edit_fields(args):
@@ -176,7 +172,7 @@ def run_config(args):
         if not args.name:raise ValueError("options requires NAME")
         result={"profile":args.name,"settings":option_config(args.name)}
     elif action=="list":
-        result=_list_presets()
+        result=_list_presets(args.max_files)
     elif action=="set":
         result=_apply_defaults(args)
     elif action=="edit":

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from tgk.icons import ICONS,CATEGORIES,icon_names,icon_for_path,glyph,svg
-from tgk.typography import PRESETS,resolve_text_style,get_text_style
+from tgk.typography import PRESETS,get_text_style
 from tgk.theme import get_theme
 
 
@@ -31,24 +31,20 @@ def run_typography(args):
     from tgk.config import load_config
     from tgk.typography import get_text_style
     current_name=args.text_style or load_config()["ui"]["text_style"]
+    from tgk_tools.preset_catalog import text_entries
+    presets=text_entries()
     if args.preview:
         TypographyPreview(args).run()
     elif args.json:
         print(json.dumps({"default":current_name,"active_size":get_text_style().size,
                           "presets":{
-            name:dict(family=resolve_text_style(name).family,
-                      size=resolve_text_style(name).size,
-                      weight=resolve_text_style(name).weight,
-                      italic=resolve_text_style(name).italic,
-                      underline=resolve_text_style(name).underline,
-                      strike=resolve_text_style(name).strike,
-                      role=resolve_text_style(name).role,
-                      line_height=resolve_text_style(name).line_height)
-            for name in PRESETS}},indent=2))
+            name:dict(family=style.family,size=style.size,weight=style.weight,
+                      italic=style.italic,underline=style.underline,strike=style.strike,
+                      role=style.role,line_height=style.line_height)
+            for name,style in presets.items()}},indent=2))
     else:
         print("Typography presets (default: "+current_name+"):")
-        for name in PRESETS:
-            s=resolve_text_style(name)
+        for name,s in presets.items():
             print(f"  {name:12s}  {s.family:5s} {s.size:3d}sp "
                   f"weight={s.weight} role={s.role}")
     return 0
