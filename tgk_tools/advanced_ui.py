@@ -28,10 +28,14 @@ def run_icons(args):
 
 
 def run_typography(args):
+    from tgk.config import load_config
+    from tgk.typography import get_text_style
+    current_name=args.text_style or load_config()["ui"]["text_style"]
     if args.preview:
         TypographyPreview(args).run()
     elif args.json:
-        print(json.dumps({"default":"body","presets":{
+        print(json.dumps({"default":current_name,"active_size":get_text_style().size,
+                          "presets":{
             name:dict(family=resolve_text_style(name).family,
                       size=resolve_text_style(name).size,
                       weight=resolve_text_style(name).weight,
@@ -42,7 +46,7 @@ def run_typography(args):
                       line_height=resolve_text_style(name).line_height)
             for name in PRESETS}},indent=2))
     else:
-        print("Typography presets (default: body):")
+        print("Typography presets (default: "+current_name+"):")
         for name in PRESETS:
             s=resolve_text_style(name)
             print(f"  {name:12s}  {s.family:5s} {s.size:3d}sp "
