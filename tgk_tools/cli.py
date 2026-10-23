@@ -505,9 +505,9 @@ def run_demo(args):
 
 def _configure_theme(args,parser):
     """Select preset/file first; command-line role overrides have final precedence."""
-    from tgk.theme import load_theme,resolve_theme,set_theme
+    from tgk.theme import load_theme,resolve_theme,set_theme,get_theme
     try:
-        chosen=load_theme(args.theme_file) if args.theme_file else resolve_theme()
+        chosen=load_theme(args.theme_file) if args.theme_file else get_theme()
         if args.theme:chosen=resolve_theme(args.theme)
         overrides={}
         for item in args.color:
@@ -516,7 +516,7 @@ def _configure_theme(args,parser):
             if not role.strip():raise ValueError("--color requires a role")
             overrides[role.strip()]=value.strip()
         set_theme(chosen,**overrides)
-        from tgk.typography import resolve_text_style,set_text_style,PRESETS as FONT_PRESETS
+        from tgk.typography import resolve_text_style,set_text_style,get_text_style,PRESETS as FONT_PRESETS
         from tgk.theme import normalize_color
         style_options={}
         for field,arg_name in (("family","font_family"),("size","font_size"),
@@ -526,7 +526,7 @@ def _configure_theme(args,parser):
             if value is not None:style_options[field]=value
         for flag in ("italic","underline","strike"):
             if getattr(args,flag):style_options[flag]=True
-        set_text_style(args.text_style,**style_options)
+        set_text_style(args.text_style or get_text_style(),**style_options)
         args.object_fonts={}
         allowed={"root","heading","input","button","cancel","image",
                  "canvas","progress","*"}
@@ -612,6 +612,11 @@ def _run_icons_build(args):
     return 0
 
 
+def _run_config_lazily(args):
+    from tgk_tools.config_cli import run_config
+    return run_config(args)
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
@@ -623,7 +628,8 @@ def main(argv=None):
     theme_flags.add_argument('--object-color',action='append',default=[],
                              metavar='TARGET.PROPERTY=#HEX',
                              help='Override native root/heading/input/button/cancel/... .text or .background')
-    theme_flags.add_argument('--text-style',default='body',help='Typography preset')
+    theme_flags.add_argument('--text-style',default=None,
+                             help='Typography preset (otherwise saved default)')
     theme_flags.add_argument('--font-family',choices=('sans','serif','mono'))
     theme_flags.add_argument('--font-size',type=int)
     theme_flags.add_argument('--font-weight',type=int)
@@ -728,8 +734,15 @@ def main(argv=None):
     a.add_argument('--samples',type=int,default=3)
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=_run_benchmark_lazily)
+    a=sub.add_parser('config',help='initialize/show/update TGK user settings')
+    a.add_argument('operation',choices=('show','init','set','presets'))
+    a.add_argument('key',nargs='?',help='setting key e.g. defaults.theme')
+    a.add_argument('value',nargs='?',help='new value; JSON numbers/booleans or name')
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=_run_config_lazily)
     args=p.parse_args(argv)
-    _configure_theme(args,p)
+    if args.command!='config':
+        _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
     if args.command=='image' and args.max_bytes<=0:p.error('--max-bytes must be positive')
     for name in ('timeout','seconds'):
