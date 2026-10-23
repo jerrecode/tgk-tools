@@ -772,7 +772,7 @@ def main(argv=None):
     a.set_defaults(run=_run_benchmark_lazily)
     a=sub.add_parser('config',help='inspect, initialize and validate editable TGK settings')
     a.add_argument('action',nargs='?',default='show',
-                   choices=('show','init','path','validate','palette','typography','options',
+                   choices=('show','init','path','validate','audit','palette','typography','options',
                             'list','set','edit'))
     a.add_argument('name',nargs='?',help='preset name for palette/typography/options')
     a.add_argument('--palette',help='persist this default palette')
@@ -787,6 +787,8 @@ def main(argv=None):
     a.add_argument('--reset-field',action='append',default=[],
                    metavar='SECTION.KEY',
                    help='reset one selected property to built-in default')
+    a.add_argument('--max-files',type=int,default=2000,
+                   help='audit at most N preset files (1..5000; default 2000)')
     from tgk_tools.config_cli import run_config
     a.set_defaults(run=run_config)
     args=p.parse_args(argv)
@@ -803,6 +805,8 @@ def main(argv=None):
             p.error('tgk config edit requires --field or --reset-field')
         if args.action!='edit' and (args.field or args.reset_field):
             p.error('--field/--reset-field require tgk config edit')
+        if not 1<=args.max_files<=5000:
+            p.error('--max-files must be 1..5000')
         try:return args.run(args)
         except (RuntimeError,ValueError,OSError) as exc:
             print('tgk:',str(exc),file=sys.stderr);return 2
