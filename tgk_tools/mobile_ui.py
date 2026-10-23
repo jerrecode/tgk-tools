@@ -1,7 +1,7 @@
 """CLI planning and Android Activity metrics for TGK adaptive layouts."""
 from __future__ import annotations
 
-from dataclasses import asdict
+from dataclasses import asdict,replace
 import json
 from types import SimpleNamespace
 
@@ -29,28 +29,34 @@ def _metrics_for(args):
 
 def run_layout_plan(args):
     metrics=_metrics_for(args)
-    cols=12
+    from tgk.config import configured_layout_scale
+    planner=replace(configured_layout_scale(),
+                    columns=args.columns,
+                    grid_unit_dp=args.grid_unit_dp,
+                    touch_target_dp=args.touch_target_dp)
+    cols=planner.columns
+    logical=args.span_units
     children=[]
     if args.spans:
         for raw in args.spans:
             parts=raw.split(",")
             if len(parts)!=3:raise ValueError("--spans must be COMPACT,MEDIUM,EXPANDED")
             span=list(map(int,parts))
-            if any(not 1<=number<=12 for number in span):
-                raise ValueError("--spans must contain values from 1 to 12 in every size class")
+            if any(not 1<=number<=logical for number in span):
+                raise ValueError("--spans must contain values from 1 to --span-units in every size class")
             children.append(SimpleNamespace(span_compact=span[0],
                           span_medium=span[1],span_expanded=span[2]))
     else:
         for _ in range(args.items):
             children.append(SimpleNamespace(span_compact=12,span_medium=6,span_expanded=4))
-    planner=LayoutScale(grid_unit_dp=args.grid_unit_dp,
-                        touch_target_dp=args.touch_target_dp)
-    positions=arrange_spans(children,columns=cols,metrics=metrics)
+    positions=arrange_spans(children,columns=cols,span_units=logical,metrics=metrics)
     result={"source":"termuxgui" if args.connect else "simulated",
             "screen":metrics.to_dict(),
-            "grid":{"columns":cols,"unit_dp":planner.grid_unit_dp,
+            "grid":{"columns":cols,"span_units":logical,
+                    "unit_dp":planner.grid_unit_dp,
                     "touch_target_dp":planner.touch_target_dp,
                     "margin_dp":planner.margin(metrics),
+                    "gutter_dp":round(planner.gutter(metrics),3),
                     "column_width_dp":round(planner.column_width(metrics),3),
                     "items":[{"row":r,"column":c,"row_span":rs,"col_span":cs}
                              for r,c,rs,cs in positions]}}
@@ -59,7 +65,8 @@ def run_layout_plan(args):
     else:
         print(f"{result['source']} window: {metrics.width_dp:g}x{metrics.height_dp:g}dp "
               f"({metrics.orientation}, {metrics.size_class})")
-        print(f"Grid: {cols} columns, touch minimum {planner.touch_target_dp}dp")
+        print(f"Grid: {cols} native columns, {logical} logical units; "
+              f"touch minimum {planner.touch_target_dp}dp")
         print("Hardware max FPS / physical resolution / depth / system insets: "
               "unknown unless separately provided")
         for i,(r,c,_,sp) in enumerate(positions):
@@ -87,8 +94,10 @@ def run_adaptive_demo(args):
     from tgk.adaptive_demo import AdaptiveLab
     from tgk.theme import get_theme
     from tgk.typography import get_text_style
-    scale=LayoutScale(grid_unit_dp=args.grid_unit_dp,
-                      touch_target_dp=args.touch_target_dp)
+    from tgk.config import configured_layout_scale
+    scale=replace(configured_layout_scale(),
+                  columns=args.columns,grid_unit_dp=args.grid_unit_dp,
+                  touch_target_dp=args.touch_target_dp)
     app=AdaptiveLab(theme=get_theme(),text_style=get_text_style(),
                     layout_scale=scale,orientation_mode=args.orientation)
     app.run()
