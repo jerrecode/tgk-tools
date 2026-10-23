@@ -32,6 +32,11 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("--no-deps --editable .",source)
         self.assertIn('"$PYTHON" -m tgk.config init',source)
         self.assertIn('"$PYTHON" -m tgk.config validate',source)
+        self.assertIn('"$PYTHON" -m tgk.config audit',source)
+        self.assertIn('"$PYTHON" -m tgk.install_assets',source)
+        self.assertLess(source.index('"$PYTHON" -m tgk.config init'),
+                        source.index('"$PYTHON" -m tgk.install_assets'))
+        self.assertIn("(0, 6, 9)",source)
 
 
 if __name__=="__main__":
