@@ -713,17 +713,46 @@ def main(argv=None):
     a.add_argument('--items',type=int,default=8)
     a.add_argument('--spans',action='append',default=[],
                    metavar='COMPACT,MEDIUM,EXPANDED')
+    a.add_argument('--columns',type=int,help='physical grid columns (1..32; saved default)')
+    a.add_argument('--span-units',type=int,default=12,
+                   help='design-space columns; default 12 logical units')
     a.add_argument('--touch-target-dp',type=int,default=48)
     a.add_argument('--grid-unit-dp',type=int,default=4)
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_layout_plan',args))
+    a=sub.add_parser('size-plan',parents=[theme_flags],
+                     help='viewport-aware dp size constraint preview, offline or connected')
+    a.add_argument('--connect',action='store_true')
+    a.add_argument('--width-dp',type=float)
+    a.add_argument('--height-dp',type=float)
+    a.add_argument('--density',type=float,default=1.0)
+    a.add_argument('--font-scale',type=float,default=1.0)
+    a.add_argument('--item-width-dp',type=float)
+    a.add_argument('--item-height-dp',type=float)
+    a.add_argument('--item-width-fraction',type=float)
+    a.add_argument('--item-height-fraction',type=float)
+    a.add_argument('--min-width-dp',type=float)
+    a.add_argument('--min-height-dp',type=float)
+    a.add_argument('--max-width-dp',type=float)
+    a.add_argument('--max-height-dp',type=float)
+    a.add_argument('--max-width-fraction',type=float)
+    a.add_argument('--max-height-fraction',type=float)
+    a.add_argument('--margin-horizontal-dp',type=float,default=0)
+    a.add_argument('--margin-vertical-dp',type=float,default=0)
+    a.add_argument('--aspect-ratio',type=float)
+    a.add_argument('--fit',choices=('contain','stretch'),default='contain')
+    a.add_argument('--interactive',action='store_true')
+    a.add_argument('--touch-target-dp',type=int,default=48)
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=lambda args:_run_mobile('run_size_plan',args))
     a=sub.add_parser('style-catalog',parents=[theme_flags],
                      help='show preset typography, component geometry and full palette')
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_style_catalog',args))
     a=sub.add_parser('adaptive-demo',parents=[theme_flags],
-                     help='launch window-aware 12-column grid and rich table lab')
+                     help='launch window-aware responsive grid and rich table lab')
     a.add_argument('--orientation',choices=('system','portrait','landscape'),default='system')
+    a.add_argument('--columns',type=int,help='physical columns (defaults to saved policy)')
     a.add_argument('--touch-target-dp',type=int,default=48)
     a.add_argument('--grid-unit-dp',type=int,default=4)
     a.set_defaults(run=lambda args:_run_mobile('run_adaptive_demo',args))
@@ -788,11 +817,16 @@ def main(argv=None):
     if args.command=='progress' and not 1024<=args.max_progress_json_bytes<=8388608:
         p.error('--max-progress-json-bytes must be 1024..8388608')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
-    if args.command in ('adaptive-demo','layout-plan'):
-        if args.touch_target_dp<32 or args.grid_unit_dp<1:
-            p.error('touch target must be >=32dp and grid unit must be >=1dp')
-        if args.command=='layout-plan' and not 0<=args.items<=2000:
-            p.error('--items must be in 0..2000')
+    if args.command in ('adaptive-demo','layout-plan','size-plan'):
+        if args.touch_target_dp<32:
+            p.error('touch target must be >=32dp')
+        if args.command in ('adaptive-demo','layout-plan') and args.grid_unit_dp<1:
+            p.error('grid unit must be >=1dp')
+        if args.command in ('adaptive-demo','layout-plan') and args.columns is not None and not 1<=args.columns<=32:
+            p.error('--columns must be 1..32')
+        if args.command=='layout-plan':
+            if not 0<=args.items<=2000:p.error('--items must be in 0..2000')
+            if not 1<=args.span_units<=32:p.error('--span-units must be 1..32')
     if args.command=='benchmark':
         if not 1<=args.nodes<=5000 or not 1<=args.iterations<=10000 or not 1<=args.samples<=10:
             p.error('benchmark bounds: --nodes 1..5000, --iterations 1..10000, --samples 1..10')
