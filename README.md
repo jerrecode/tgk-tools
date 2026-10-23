@@ -424,6 +424,35 @@ A configuration edit takes effect when a new CLI process or GUI App starts.
 See the [TGK core README](https://github.com/jerrecode/tgk) for the
 complete JSON schema and precedence contract.
 
+## Persistently select defaults (TGK 0.6.0)
+
+TGK installs editable JSON configuration beneath `~/.config/tgk/` or the
+directory chosen through `TGK_CONFIG_HOME` / `XDG_CONFIG_HOME`.
+The TGK Tools installer now also initializes any missing files, including
+when TGK was installed separately. Reinstalling never overwrites modified
+palette/text/option presets.
+
+```sh
+tgk config init                 # initialize missing preset files
+tgk config show                 # inspect current effective defaults
+tgk config list                 # list installed named profiles
+tgk config set --palette forest --typography terminal
+tgk config set --orientation system --window-mode normal
+tgk config set --options performance
+tgk config set --options battery_saver
+```
+
+The `set` command validates and atomically writes `config.json`. A selected
+options profile is applied as a **persistent snapshot** of its layout,
+scheduler, I/O or tool settings; it does not replace unrelated settings or
+modify editable preset files. Modify individual values in `config.json`
+afterward, or choose another profile. New applications inherit saved settings;
+explicit per-run `--theme`, `--text-style`, and App constructor options win.
+
+The existing `tgk config palette NAME`, `typography NAME`, and `options NAME`
+continue to inspect individual preset files. The configuration is per-user
+and does not adjust Android system-wide settings.
+
 ## Shell commands
 
 ```sh

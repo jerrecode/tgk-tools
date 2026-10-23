@@ -38,5 +38,9 @@ if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk imp
   fi
 fi
 "$PYTHON" -m pip install --no-build-isolation --no-deps --editable .
-"$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; _lib()' 
+# Even when TGK 0.6 was already installed independently, populate any
+# missing user-owned preset files without replacing customized ones.
+"$PYTHON" -m tgk.config init
+"$PYTHON" -m tgk.config validate
+"$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; _lib()'
 printf '%s\n' 'Installed. Start with: tgk doctor --connect; tgk --help'
