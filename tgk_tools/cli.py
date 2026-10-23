@@ -293,6 +293,11 @@ def _read_progress_state(path, max_bytes=_MAX_PROGRESS_JSON_BYTES):
     return max(0.0, min(100.0, value)), message, completed
 
 
+def _progress_completion_since(previous, completed, now):
+    """Start the auto-close delay on completion; reset it after a retry."""
+    return (now if previous is None else previous) if completed else None
+
+
 def run_progress(args):
     import json
     import termuxgui as tg
@@ -321,10 +326,7 @@ def run_progress(args):
                         last=snapshot
                         bar.setprogress(round(value))
                         info.settext(f"{value:.1f}%  {message}")
-                    if completed:
-                        if done_since is None:done_since=now
-                    else:
-                        done_since=None  # a restarted job must not auto-close
+                    done_since=_progress_completion_since(done_since, completed, now)
                 except FileNotFoundError:
                     done_since=None
                 except (ValueError,TypeError) as exc:
