@@ -30,12 +30,12 @@ jobs:
           tgk --help
           tgk doctor --json
       - name: Build offline source installer archive
-        run: python scripts/build_bundle.py --tgk-source /tmp/tgk --out tgk_bundle_v0.6.7.tar.gz
+        run: python scripts/build_bundle.py --tgk-source /tmp/tgk --out tgk_bundle_v0.6.9.tar.gz
       - name: Verify offline archive installation after deleting extracted sources
-        run: python scripts/check_bundle_install.py tgk_bundle_v0.6.7.tar.gz
+        run: python scripts/check_bundle_install.py tgk_bundle_v0.6.9.tar.gz
       - name: Upload downloadable source installer
         uses: actions/upload-artifact@v4
         with:
           name: tgk-offline-installer
-          path: tgk_bundle_v0.6.7.tar.gz
+          path: tgk_bundle_v0.6.9.tar.gz
           if-no-files-found: error
