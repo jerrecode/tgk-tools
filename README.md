@@ -330,6 +330,20 @@ node-iterations. The Clock benchmark processes pending callbacks in chunks of
 is started. `tgk doctor --connect` remains the separate native Termux:GUI
 connection validation entrypoint.
 
+## Mobile-sized Close / Cancel controls
+
+All shell dialogs and viewers use compact action footers instead of stretching
+Close or Cancel buttons across the screen. A 48dp-high button receives a
+text-bounded width, a weighted spacer on its left, and 12dp bottom/right
+margins. Files and progress tools use Termux:GUI native LinearLayouts;
+TGK-based prompt/confirm/choose/show and rich typography UI use the matching
+framework widget footer.
+
+Scrollable content takes the remaining vertical space so Close remains
+reachable near the screen's bottom-right, even on short portrait phones.
+Use Android's Back action as an alternative. Per-object `--object-color`
+overrides continue to apply to Close/Cancel roles.
+
 ## Shell commands
 
 ```sh
