@@ -13,6 +13,13 @@ jobs:
       - name: Install framework from default branch
         run: |
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
+          # Only this dependent tools PR checks the matching core PR #18;
+          # remove this override after merging the core.
+          if [ "${{ github.head_ref }}" = "feature/config-preset-cli-20261023" ] || \
+             [ "${{ github.ref_name }}" = "feature/config-preset-cli-20261023" ]; then
+            git -C /tmp/tgk fetch --depth=1 origin feature/persistent-config-presets-20261023
+            git -C /tmp/tgk checkout FETCH_HEAD
+          fi
           make -C /tmp/tgk build
           python -m pip install --no-deps /tmp/tgk
       - name: Install tools
