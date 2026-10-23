@@ -98,6 +98,20 @@ class AdvancedLab:
             def build(self):
                 from tgk.layout_helpers import compact_action_bar
                 root=BoxLayout(orientation="vertical")
+                if args.mode=='dialog':
+                    # Android dialog Activities do not expose a configurable
+                    # system titlebar. Draw a small, native accessible title
+                    # row within the content area instead.
+                    from tgk import Widget
+                    titlebar=BoxLayout(orientation='horizontal',height=48,
+                                       padding=4)
+                    titlebar.add_widget(Label(text='TGK • Dialog',weight=1,
+                                              text_style='title_h4'))
+                    close=Button(text='×',width=48,height=48,
+                                 aria_label='Close dialog')
+                    close.bind(on_release=lambda *_:self.stop())
+                    titlebar.add_widget(close)
+                    root.add_widget(titlebar)
                 layer=FloatLayout(weight=1)
                 self.tabs=TabbedPanel()
                 # Fill the allocated overlay viewport; fixed 740dp tabs
