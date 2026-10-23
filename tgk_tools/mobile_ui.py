@@ -105,12 +105,15 @@ def run_size_plan(args):
         margin_horizontal_dp=args.margin_horizontal_dp,
         margin_vertical_dp=args.margin_vertical_dp,
         aspect_ratio=args.aspect_ratio,fit=args.fit)
-    size=resolve_size(spec,metrics,touch_target_dp=args.touch_target_dp,
+    from tgk.config import configured_layout_scale
+    selected_touch=(args.touch_target_dp if args.touch_target_dp is not None
+                    else configured_layout_scale().touch_target_dp)
+    size=resolve_size(spec,metrics,touch_target_dp=selected_touch,
                       interactive=args.interactive)
     payload={"source":"termuxgui" if args.connect else "simulated",
              "screen":metrics.to_dict(),"spec":asdict(spec),
              "resolved":asdict(size),
-             "touch_target_dp_effective":args.touch_target_dp,
+             "touch_target_dp_effective":selected_touch,
              "interactive":bool(args.interactive),
              "physical_display_metrics_verified":False}
     if args.json:print(json.dumps(payload,separators=(",",":"),allow_nan=False))
