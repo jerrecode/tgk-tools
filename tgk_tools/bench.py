@@ -90,6 +90,9 @@ def benchmark(nodes=256,iterations=500,samples=3):
     target._theme_hook=lambda name:backend.invalidate_style(target,name)
     target._native.background_messages=0
     def style():
+        # Ensure the first measured assignment changes state even for odd
+        # iteration counts or when repeating multiple samples.
+        target.background_color="#113355"
         before=target._native.background_messages
         for i in range(iterations):
             target.background_color="#113355" if i%2 else "#335577"
