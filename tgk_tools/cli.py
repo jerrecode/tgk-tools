@@ -693,8 +693,11 @@ def main(argv=None):
                      help='atomic layered SVG/PNG/JPG/ICO pack generator')
     a.add_argument('--output',default='.',help='parent directory for icons/')
     a.add_argument('--icon',action='append',help='specific named recipe; repeatable')
-    a.add_argument('--raster',action='store_true',default=None,
+    raster_mode=a.add_mutually_exclusive_group()
+    raster_mode.add_argument('--raster',dest='raster',action='store_true',default=None,
                    help='generate raster variants; requires optional CairoSVG + Pillow')
+    raster_mode.add_argument('--svg-only',dest='raster',action='store_false',
+                   help='override saved raster setting and generate SVG only')
     a.add_argument('--overwrite',action='store_true',
                    help='replace an existing icon pack only after successful staging')
     a.add_argument('--low',type=int,default=None)

@@ -9,7 +9,7 @@ if [ ! -w "$output" ]; then
   printf 'Error: icon output is not writable: %s\n' "$output" >&2
   exit 2
 fi
-tgk icons-build --output "$output" --overwrite \
+tgk icons-build --output "$output" --svg-only --overwrite \
   --icon filename_readme_md \
   --icon filename_requirements_txt \
   --icon file_ext_py \
