@@ -23,6 +23,44 @@ If GitHub repositories are cloned side-by-side in `~/tgk` and `~/tgk-tools`, `sh
 
 To install the framework directly without retaining the source checkout, run `sh ./install.sh --copy` inside `tgk`. Keep the Termux:GUI Android plugin installed and compatible with your Termux app. For an initial connection diagnostic, run `tgk doctor --connect`; for an offline check of just the C renderer run `tgk doctor --json`.
 
+## Update TGK Tools and TGK
+
+Update your two local Git checkouts and reinstall into the **same Python
+interpreter**. If both repositories are nested (as in `~/tgk/tgk-tools`),
+use the second `cd` path shown in the comment:
+
+```sh
+cd ~/tgk
+git switch main
+git pull --ff-only
+sh ./install.sh --copy
+
+# TGK Tools may be nested inside TGK or cloned next to it:
+cd ~/tgk/tgk-tools
+# Alternatively: cd ~/tgk-tools
+git switch main
+git pull --ff-only
+sh ./install.sh --copy
+
+tgk doctor --connect
+tgk --help
+tgk config show
+```
+
+The install scripts compile the native TGK C extension for **this device**
+and create missing palette, typography, option preset and config files.
+Existing customized files in `~/.config/tgk` or `TGK_CONFIG_HOME`
+remain unchanged. A `git pull --ff-only` failure means the local checkout
+has divergent commits or the wrong branch; inspect `git status` rather
+than automatically deleting local work. The tools installer may upgrade
+the core if the required capability/version is not installed, but updating
+**both** checkouts explicitly is more predictable.
+
+For a bundle-only installation without retained Git checkouts, download
+the newest successful offline installer artifact from GitHub Actions and
+rerun the extracted `install.sh`. Native GUI behavior still depends on
+a compatible separately installed Termux:GUI Android app.
+
 ## Downloadable offline installer archive
 
 The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.5.tar.gz` archive from a successful workflow run, then on Termux:
@@ -500,6 +538,24 @@ and the downloadable `tgk_bundle_v0.6.5.tar.gz` agree.
 
 Physical display FPS, panel resolution, and unknown status-bar insets are
 not guessed; Android hardware validation is still required.
+
+### Saved size plans and real window insets
+
+`tgk size-plan --interactive` uses the saved
+`layout.touch_target_dp` after the selected option profile. For example,
+`accessibility_touch` provides a larger minimum; `--touch-target-dp`
+overrides it only for that invocation. The optional
+`--inset-top-dp`/`--inset-bottom-dp` parameters subtract **only
+measured additional insets**. TGK does not invent status-bar offsets,
+hardware FPS, physical screen color depth or maximum panel resolution.
+
+```sh
+tgk size-plan --width-dp 393 --height-dp 852 \
+  --item-width-fraction 0.5 --item-height-dp 44 --interactive --json
+tgk size-plan --width-dp 393 --height-dp 852 \
+  --item-width-dp 260 --item-height-dp 120 \
+  --inset-top-dp 0 --inset-bottom-dp 20 --json
+```
 
 ## Shell commands
 
