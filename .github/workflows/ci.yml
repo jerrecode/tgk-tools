@@ -13,6 +13,13 @@ jobs:
       - name: Install framework from default branch
         run: |
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
+          # While core PR #16 is in review, test this tools PR against that
+          # exact matching core feature branch for both push and PR events.
+          if [ "${{ github.head_ref }}" = "feature/config-inspection-cli-20261023" ] || \
+             [ "${{ github.ref_name }}" = "feature/config-inspection-cli-20261023" ]; then
+            git -C /tmp/tgk fetch --depth=1 origin feature/persistent-runtime-presets-config-20261023
+            git -C /tmp/tgk checkout FETCH_HEAD
+          fi
           make -C /tmp/tgk build
           python -m pip install --no-deps /tmp/tgk
       - name: Install tools
