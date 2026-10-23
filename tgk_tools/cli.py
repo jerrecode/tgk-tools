@@ -602,6 +602,9 @@ def _run_benchmark_lazily(args):
 def _run_icons_build(args):
     from tgk.icon_builder import build_assets
     import json
+    output=Path(args.output).expanduser()/'icons'
+    if output.exists() and not args.overwrite:
+        raise FileExistsError(f'icon output already exists: {output}; use --overwrite to replace')
     result=build_assets(args.output,names=args.icon,raster=args.raster,
                         overwrite=args.overwrite,low=args.low,mid=args.mid,
                         high=args.high,max_icons=args.max_icons)
