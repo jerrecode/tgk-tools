@@ -33,9 +33,38 @@ def check(archive):
         with tarfile.open(archive) as bundle:
             bundle.extractall(source, filter='data')
         root = source/BUNDLE_NAME
-        for _ in range(2):  # first installation and upgrade/reinstallation
+        preserved = {}
+        for iteration in range(2):  # first installation and upgrade/reinstallation
             subprocess.run(['sh', './install.sh', '--no-auto'], cwd=root,
                            env=env, check=True)
+            settings_root = Path(env['TGK_CONFIG_HOME'])
+            if iteration == 0:
+                # Exercise preservation with real edited defaults, presets and
+                # a user-customized existing asset, not just two clean installs.
+                customize = '''
+import json, os
+from pathlib import Path
+from tgk.config import patch_config
+root = Path(os.environ["TGK_CONFIG_HOME"])
+patch_config({"ui": {"theme": "ocean"}, "layout": {"touch_target_dp": 56}})
+palette = root/"palettes/ocean.json"
+data = json.loads(palette.read_text())
+data["colors"]["accent"] = "#33EE44"
+palette.write_text(json.dumps(data))
+font = root/"text_styles/body.json"
+data = json.loads(font.read_text())
+data.setdefault("properties", {})["size"] = 19
+font.write_text(json.dumps(data))
+asset = root/"icons/svg/file.svg"
+asset.write_text(asset.read_text().replace("</svg>", "<!-- user asset --></svg>"))
+'''
+                subprocess.run([str(python), '-I', '-c', customize], cwd=base,
+                               env=env, check=True)
+                preserved = {path.relative_to(settings_root): path.read_bytes()
+                             for path in settings_root.rglob('*') if path.is_file()}
+            else:
+                for relative, original in preserved.items():
+                    assert (settings_root/relative).read_bytes() == original, relative
         shutil.rmtree(source)
         # Isolated Python and an empty cwd prevent source-path imports from
         # hiding an incomplete or accidentally editable installation.
@@ -75,7 +104,7 @@ assert pixels == bytes((11, 22, 33, 255))*16
         purelib = environment/'lib'/f'python{sys.version_info.major}.{sys.version_info.minor}'/'site-packages'
         for path in (purelib/'tgk', purelib/'tgk_tools', purelib/'tgk_auto.pth', cli):
             assert not path.exists(), f'Uninstall left installed file: {path}'
-    print('Bundle verified: offline install, reinstall, source deletion, C rendering, CLI and uninstall')
+    print('Bundle verified: offline install, customized config/presets/icons preserved on reinstall, source deletion, C rendering, CLI and uninstall')
 
 
 if __name__ == '__main__':

@@ -6,6 +6,17 @@ Shell-friendly Android utilities powered by [TGK](https://github.com/jerrecode/t
 
 ## Installation
 
+Offline archive generation rejects non-ignored symlinks and special files
+inside either source tree instead of following them outside the checkout.
+A completed archive replaces its destination only after compression succeeds;
+a failed write preserves the previous bundle. Build from trusted, quiescent
+source checkouts. The archive excludes Git history and host-built shared
+libraries; native C code is compiled on the destination device.
+
+The framework's [Android validation matrix](https://github.com/jerrecode/tgk/blob/main/docs/android-validation.md)
+records pending physical keyboard, touch, orientation, inset, accessibility
+and lifecycle checks. Linux tests do not establish Android visual correctness.
+
 Install Termux, the matching Termux:GUI Android plugin, and in Termux run:
 
 ```sh
