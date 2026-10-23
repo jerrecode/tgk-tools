@@ -7,64 +7,22 @@ from tgk.config import (config_home,config_path,initialize_config,load_config,
                         option_config,_read_json)
 
 
-def _atomic_persist(selected):
-    """Validate and atomically replace the user's own config, never presets."""
-    import os
-    import tempfile
-    from tgk.config import validate_config,MAX_JSON_BYTES,clear_config_cache,option_config
-    value=validate_config(selected)
-    option_config(value["ui"]["option_profile"])
-    path=config_path()
-    if path.is_symlink():raise ValueError("refusing to overwrite a config symlink")
-    data=(json.dumps(selected,ensure_ascii=False,indent=2,sort_keys=True)+"\n").encode("utf-8")
-    if len(data)>MAX_JSON_BYTES:raise ValueError("configuration size limit exceeded")
-    path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
-    fd,tmp=tempfile.mkstemp(prefix=".tgk-config-",dir=path.parent)
-    try:
-        with os.fdopen(fd,"wb") as out:
-            os.fchmod(out.fileno(),0o600)
-            out.write(data)
-            out.flush()
-            os.fsync(out.fileno())
-        os.replace(tmp,path)
-    finally:
-        try:os.unlink(tmp)
-        except FileNotFoundError:pass
-    clear_config_cache()
-    return load_config()
-
-
 def _apply_defaults(args):
-    from tgk.config import DEFAULT_CONFIG,validate_config,OPTIONS,_safe_name
-    from tgk.theme import PRESETS,load_theme
-    from tgk.typography import PRESETS as TEXT_PRESETS
-    from copy import deepcopy
-
-    raw=_read_json(config_path()) if config_path().exists() else deepcopy(DEFAULT_CONFIG)
-    # Reject unknown/unsafe settings before applying any patches.
-    validate_config(raw)
-    ui=raw.setdefault("ui",{})
-    if args.palette is not None:
-        name=_safe_name(args.palette)
-        if name not in PRESETS:raise ValueError("unknown palette preset "+name)
-        candidate=config_home()/"palettes"/(name+".json")
-        if candidate.exists():load_theme(candidate)
-        ui["theme"]=name
-    if args.typography is not None:
-        name=_safe_name(args.typography)
-        if name not in TEXT_PRESETS:raise ValueError("unknown typography preset "+name)
-        ui["text_style"]=name
-    if args.orientation is not None:ui["orientation"]=args.orientation
-    if args.window_mode is not None:ui["window_mode"]=args.window_mode
-
-    if args.options is not None:
-        name=_safe_name(args.options)
-        option_config(name)  # validate shipped/custom profile before writing
-        # Save selector, not a snapshot of its numeric values. A snapshot
-        # would permanently pin battery/performance values when switching
-        # to another profile. Runtime merges only explicitly edited fields.
-        ui["option_profile"]=name
-    saved=_atomic_persist(raw)
+    """Save all selected defaults in one atomic TGK core config transaction."""
+    from tgk.config import patch_config,initialize_config,_safe_name
+    changes={"ui":{}}
+    for flag,key in (("palette","theme"),("typography","text_style"),
+                     ("options","option_profile"),
+                     ("orientation","orientation"),("window_mode","window_mode")):
+        value=getattr(args,flag,None)
+        if value is not None:
+            if key in ("theme","text_style","option_profile"):_safe_name(value)
+            changes["ui"][key]=value
+    if not changes["ui"]:raise ValueError("at least one new default is required")
+    # Keep the historical config set convenience on a new installation.
+    # The framework installer also creates this tree with create-only writes.
+    if not config_path().is_file():initialize_config()
+    saved=patch_config(changes)
     return {"settings":saved,"profile_applied":args.options,
             "config_path":str(config_path())}
 
