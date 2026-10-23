@@ -581,6 +581,11 @@ def _run_mobile(name,args):
     return getattr(mobile_ui,name)(args)
 
 
+def _run_benchmark_lazily(args):
+    from tgk_tools.bench import run_benchmark
+    return run_benchmark(args)
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
@@ -675,6 +680,13 @@ def main(argv=None):
     a.add_argument('--touch-target-dp',type=int,default=48)
     a.add_argument('--grid-unit-dp',type=int,default=4)
     a.set_defaults(run=lambda args:_run_mobile('run_adaptive_demo',args))
+    a=sub.add_parser('benchmark',parents=[theme_flags],
+                     help='bounded Python-only performance measurements (not Android FPS)')
+    a.add_argument('--nodes',type=int,default=256)
+    a.add_argument('--iterations',type=int,default=500)
+    a.add_argument('--samples',type=int,default=3)
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=_run_benchmark_lazily)
     args=p.parse_args(argv)
     _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
@@ -692,6 +704,11 @@ def main(argv=None):
             p.error('touch target must be >=32dp and grid unit must be >=1dp')
         if args.command=='layout-plan' and not 0<=args.items<=2000:
             p.error('--items must be in 0..2000')
+    if args.command=='benchmark':
+        if not 1<=args.nodes<=5000 or not 1<=args.iterations<=10000 or not 1<=args.samples<=10:
+            p.error('benchmark bounds: --nodes 1..5000, --iterations 1..10000, --samples 1..10')
+        if args.nodes*args.iterations*args.samples>2_000_000:
+            p.error('benchmark work must not exceed 2,000,000 node-iterations')
     if args.command=='pipeline':
         if args.operation in ('copy','download') and not args.target:
             p.error('pipeline '+args.operation+' requires TARGET')
