@@ -13,12 +13,6 @@ jobs:
       - name: Install framework from default branch
         run: |
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
-          # Only this in-flight tools PR needs the matching core PR #12.
-          if [ "${{ github.head_ref }}" = "feature/adaptive-layout-style-cli-20261023" ] || \
-             [ "${{ github.ref_name }}" = "feature/adaptive-layout-style-cli-20261023" ]; then
-            git -C /tmp/tgk fetch --depth=1 origin feature/adaptive-layout-style-tokens-20261023
-            git -C /tmp/tgk checkout FETCH_HEAD
-          fi
           make -C /tmp/tgk build
           python -m pip install --no-deps /tmp/tgk
       - name: Install tools
