@@ -11,14 +11,18 @@ from tgk.io_pipeline import Limits,copy_file,hash_file,download,ffprobe
 
 
 def run_pipeline(args):
+    from tgk.config import get_config
+    configured=get_config()["io"]
+    timeout=args.timeout if args.timeout is not None else configured["timeout"]
     if args.operation=="probe":
-        data=ffprobe(args.source,timeout=args.timeout,max_json_bytes=args.max_metadata_bytes)
+        data=ffprobe(args.source,timeout=timeout,max_json_bytes=args.max_metadata_bytes)
         print(json.dumps({"operation":"probe","source":str(args.source),
                           "data":data},ensure_ascii=False,separators=(",",":")))
         return 0
 
-    limits=Limits(chunk_bytes=args.chunk_bytes,max_bytes=args.max_bytes,
-                  timeout=args.timeout)
+    limits=Limits(chunk_bytes=args.chunk_bytes if args.chunk_bytes is not None else configured["chunk_bytes"],
+                  max_bytes=args.max_bytes if args.max_bytes is not None else configured["max_bytes"],
+                  timeout=timeout,workers=configured["workers"],pending=configured["pending"])
     if args.operation=="hash":
         result=hash_file(args.source,limits=limits)
     elif args.operation=="copy":
