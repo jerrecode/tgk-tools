@@ -506,9 +506,10 @@ def run_demo(args):
 
 def _configure_theme(args,parser):
     """Select preset/file first; command-line role overrides have final precedence."""
-    from tgk.theme import load_theme,resolve_theme,set_theme,get_theme
+    from tgk.theme import load_theme,resolve_theme,set_theme
+    from tgk.config import configured_theme,configured_text_style
     try:
-        chosen=load_theme(args.theme_file) if args.theme_file else get_theme()
+        chosen=load_theme(args.theme_file) if args.theme_file else configured_theme()
         if args.theme:chosen=resolve_theme(args.theme)
         overrides={}
         for item in args.color:
@@ -527,8 +528,7 @@ def _configure_theme(args,parser):
             if value is not None:style_options[field]=value
         for flag in ("italic","underline","strike"):
             if getattr(args,flag):style_options[flag]=True
-        from tgk.typography import get_text_style
-        set_text_style(args.text_style or get_text_style(),**style_options)
+        set_text_style(args.text_style or configured_text_style(),**style_options)
         args.object_fonts={}
         allowed={"root","heading","input","button","cancel","image",
                  "canvas","progress","*"}
