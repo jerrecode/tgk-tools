@@ -693,9 +693,12 @@ def main(argv=None):
     a.add_argument('operation',choices=('hash','copy','download','probe'))
     a.add_argument('source',help='local path (or HTTPS URL for download)')
     a.add_argument('target',nargs='?',help='destination for copy or download')
-    a.add_argument('--chunk-bytes',type=int,default=65536)
-    a.add_argument('--max-bytes',type=int,default=268435456)
-    a.add_argument('--timeout',type=float,default=30)
+    a.add_argument('--chunk-bytes',type=int,default=None,
+                   help='default: configured io.chunk_bytes')
+    a.add_argument('--max-bytes',type=int,default=None,
+                   help='default: configured io.max_bytes')
+    a.add_argument('--timeout',type=float,default=None,
+                   help='default: configured io.timeout')
     a.add_argument('--max-metadata-bytes',type=int,default=8388608)
     a.add_argument('--overwrite',action='store_true')
     a.add_argument('--allow-http',action='store_true',help='allow insecure HTTP explicitly')
@@ -768,8 +771,10 @@ def main(argv=None):
             p.error('pipeline '+args.operation+' requires TARGET')
         if args.operation in ('hash','probe') and args.target:
             p.error('pipeline '+args.operation+' does not accept TARGET')
-        if args.timeout<=0:p.error('--timeout must be positive')
-        if args.max_bytes<=0 or args.chunk_bytes<=0 or args.max_metadata_bytes<=0:
+        if args.timeout is not None and args.timeout<=0:p.error('--timeout must be positive')
+        if ((args.max_bytes is not None and args.max_bytes<=0) or
+            (args.chunk_bytes is not None and args.chunk_bytes<=0) or
+            args.max_metadata_bytes<=0):
             p.error('pipeline size limits must be positive')
     if args.command=='icons' and args.svg and (args.path or args.category):
         p.error('Use --svg separately from --path or --category')
