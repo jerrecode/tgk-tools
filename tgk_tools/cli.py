@@ -687,6 +687,8 @@ def main(argv=None):
     a.set_defaults(run=_run_typography_lazily)
     a=sub.add_parser('ui-lab',parents=[theme_flags],help='tabs, popup, icons, rich text and canvas')
     a.add_argument('--mode',choices=('normal','dialog','overlay'),default='normal')
+    a.add_argument('--fallback-normal',action='store_true',
+                   help='if overlay creation fails, warn and open a normal Activity')
     a.add_argument('--start-page',choices=('home','icons','text','canvas','screens'),default='home')
     a.set_defaults(run=_run_lab_lazily)
     a=sub.add_parser('pipeline',parents=[theme_flags],
