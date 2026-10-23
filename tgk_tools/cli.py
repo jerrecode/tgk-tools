@@ -5,20 +5,42 @@ import sys
 from pathlib import Path
 from tgk.widgets import App, BoxLayout, ScrollView, Label, Button, TextInput, CheckBox
 
-def layout(title):
-    root=BoxLayout(orientation='vertical',padding=12)
-    root.add_widget(Label(text=title,font_size=22,height=65))
+def _paint_object(view,part,args):
+    """Apply named per-object shell flags after creating a native/TGK widget.
+
+    Target names: root, heading, input, button, cancel, image, canvas,
+    progress. These flags override semantic theme colors on that object
+    without modifying sibling Views or global preset definitions.
+    """
+    from tgk.theme import tgui_color
+    styles=getattr(args,'object_colors',{}) if args is not None else {}
+    for property_name in ('background','text'):
+        color=styles.get((part,property_name),styles.get(('*',property_name)))
+        if color is None:continue
+        if hasattr(view,'_native'):
+            setattr(view, 'background_color' if property_name=='background'
+                    else 'text_color',color)
+        else:
+            setter=getattr(view,'setbackgroundcolor' if property_name=='background'
+                           else 'settextcolor',None)
+            if callable(setter):setter(tgui_color(color))
+    return view
+
+
+def layout(title,args=None):
+    root=_paint_object(BoxLayout(orientation='vertical',padding=12),'root',args)
+    root.add_widget(_paint_object(Label(text=title,font_size=22,height=65),'heading',args))
     return root
 
 def run_prompt(args):
     class Prompt(App):
         result=None
         def build(self):
-            root=layout(args.title or 'Enter text')
-            self.entry=TextInput(text=args.default or '',multiline=args.multiline,password=args.password,height=85)
+            root=layout(args.title or 'Enter text',args)
+            self.entry=_paint_object(TextInput(text=args.default or '',multiline=args.multiline,password=args.password,height=85),'input',args)
             root.add_widget(self.entry)
             bar=BoxLayout(orientation='horizontal',height=55)
-            yes=Button(text='OK');no=Button(text='Cancel')
+            yes=_paint_object(Button(text='OK'),'button',args);no=_paint_object(Button(text='Cancel'),'cancel',args)
             yes.bind(on_release=lambda *_: self.done(True))
             no.bind(on_release=lambda *_: self.done(False))
             bar.add_widget(no);bar.add_widget(yes);root.add_widget(bar)
@@ -34,11 +56,11 @@ def run_confirm(args):
     class Confirm(App):
         accepted=False
         def build(self):
-            root=layout(args.title or 'Confirm')
+            root=layout(args.title or 'Confirm',args)
             root.add_widget(Label(text=args.message,height=90))
             buttons=BoxLayout(height=60)
             for name,choice in [('No',False),('Yes',True)]:
-                b=Button(text=name);b.bind(on_release=lambda _,choice=choice:self.finish(choice))
+                b=_paint_object(Button(text=name),'button',args);b.bind(on_release=lambda _,choice=choice:self.finish(choice))
                 buttons.add_widget(b)
             root.add_widget(buttons);return root
         def finish(self,choice):self.accepted=choice;self.stop()
@@ -59,20 +81,20 @@ def run_choose(args):
     class Choose(App):
         result=None
         def build(self):
-            root=layout(args.title or 'Choose an option')
+            root=layout(args.title or 'Choose an option',args)
             scroll=ScrollView()
             listbox=BoxLayout(orientation='vertical')
             if args.multi:
                 self.checkboxes=[]
                 for option in args.options:
-                    ch=CheckBox(text=option,active=option in (args.selected or []))
+                    ch=_paint_object(CheckBox(text=option,active=option in (args.selected or [])),'button',args)
                     self.checkboxes.append(ch);listbox.add_widget(ch)
-                ok=Button(text='Confirm selection',height=58)
+                ok=_paint_object(Button(text='Confirm selection',height=58),'button',args)
                 ok.bind(on_release=lambda *_:self.finish([c.text for c in self.checkboxes if c.active]))
                 root.add_widget(ok)
             else:
                 for option in args.options:
-                    button=Button(text=option,height=58)
+                    button=_paint_object(Button(text=option,height=58),'button',args)
                     button.bind(on_release=lambda _,option=option:self.finish(option))
                     listbox.add_widget(button)
             scroll.add_widget(listbox);root.add_widget(scroll)
@@ -94,11 +116,11 @@ def run_show(args):
     if len(text)>args.max_chars:raise ValueError('Input too large; use --max-chars explicitly')
     class Viewer(App):
         def build(self):
-            root=layout(args.title or (args.file if args.file!='-' else 'Text viewer'))
+            root=layout(args.title or (args.file if args.file!='-' else 'Text viewer'),args)
             scroll=ScrollView()
             scroll.add_widget(Label(text=text))
             root.add_widget(scroll)
-            close=Button(text='Close',height=55)
+            close=_paint_object(Button(text='Close',height=55),'cancel',args)
             close.bind(on_release=lambda *_:self.stop())
             root.add_widget(close);return root
     Viewer().run();return 0
@@ -110,14 +132,16 @@ def run_image(args):
     import termuxgui as tg
     with tg.Connection() as c:
         a=tg.Activity(c,intercept=True)
-        root=tg.LinearLayout(a,vertical=True)
-        tg.TextView(a,path.name,root)
-        image=tg.ImageView(a,root)
+        from tgk.theme import get_theme,apply_activity_theme
+        apply_activity_theme(a,get_theme())
+        root=_paint_object(tg.LinearLayout(a,vertical=True),'root',args)
+        _paint_object(tg.TextView(a,path.name,root),'heading',args)
+        image=_paint_object(tg.ImageView(a,root),'image',args)
         image.setimage(path.read_bytes())
         image.setwidth(tg.View.MATCH_PARENT)
         image.setheight(0)
         image.setlinearlayoutparams(1)
-        close=tg.Button(a,'Close',root);close.sendclickevent(True)
+        close=_paint_object(tg.Button(a,'Close',root),'cancel',args);close.sendclickevent(True)
         for e in c.events():
             if e.type=='back' or (e.type=='click' and e.value.get('id')==close):a.finish()
             if e.type=='destroy' and e.value.get('finishing'):break
@@ -132,7 +156,12 @@ def run_canvas(args):
     if w<=0 or h<=0 or w*h>4_194_304:raise ValueError('canvas dimensions invalid/too large')
     with tg.Connection() as connection:
         activity=tg.Activity(connection,intercept=True)
-        view=tg.ImageView(activity)
+        from tgk.theme import get_theme, apply_activity_theme,rgba_channels
+        palette=apply_activity_theme(activity,get_theme())
+        def rgb(role,opacity=None):
+            channels=rgba_channels(palette[role])
+            return rgba(*(channels if opacity is None else channels[:3]+(opacity,)))
+        view=_paint_object(tg.ImageView(activity),'canvas',args)
         view.setdimensions(tg.View.MATCH_PARENT,tg.View.MATCH_PARENT)
         view.sendtouchevent(True)
         buffer=tg.Buffer(connection,w,h)
@@ -181,14 +210,14 @@ def run_canvas(args):
                         time.sleep(min(.005,max(0,1/args.fps-(now-last))))
                         continue
                     last=now;frame+=1
-                    canvas.gradient(rgba(16,22,55),rgba(54,18,73))
-                    for x in range(0,w,32):canvas.line(x,0,x,h-1,rgba(72,77,122,75))
-                    for y in range(0,h,32):canvas.line(0,y,w-1,y,rgba(72,77,122,75))
+                    canvas.gradient(rgb('background'),rgb('surface_alt'))
+                    for x in range(0,w,32):canvas.line(x,0,x,h-1,rgb('outline',75))
+                    for y in range(0,h,32):canvas.line(0,y,w-1,y,rgb('outline',75))
                     t=now-t0
                     x=w//2+round(w*.28*math.cos(t*1.3))
                     y=h//2+round(h*.28*math.sin(t*1.3))
-                    canvas.circle(x,y,24,rgba(35,214,239))
-                    for tx,ty in touches:canvas.circle(tx,ty,18,rgba(255,126,180))
+                    canvas.circle(x,y,24,rgb('accent'))
+                    for tx,ty in touches:canvas.circle(tx,ty,18,rgb('accent_secondary'))
                     buffer.blit();view.refresh()
                     if args.seconds and t>args.seconds:activity.finish()
             finally:canvas.close();del canvas
@@ -240,12 +269,14 @@ def run_files(args):
     selection=None
     with tg.Connection() as c:
         activity=tg.Activity(c,intercept=True)
-        root=tg.LinearLayout(activity,vertical=True)
-        heading=tg.TextView(activity,'Files',root)
+        from tgk.theme import apply_activity_theme,get_theme
+        apply_activity_theme(activity,get_theme())
+        root=_paint_object(tg.LinearLayout(activity,vertical=True),'root',args)
+        heading=_paint_object(tg.TextView(activity,'Files',root),'heading',args)
         heading.settextsize(19)
         scroll=tg.NestedScrollView(activity,root)
         scroll.setheight(0);scroll.setlinearlayoutparams(1)
-        control=tg.Button(activity,'Cancel',root);control.sendclickevent(True)
+        control=_paint_object(tg.Button(activity,'Cancel',root),'cancel',args);control.sendclickevent(True)
         controls=[(control,'cancel',None)]
         def render(directory):
             nonlocal controls
@@ -254,10 +285,10 @@ def run_files(args):
             scroll.clearchildren()
             listbox=tg.LinearLayout(activity,scroll,vertical=True)
             if directory.parent!=directory and (boundary is None or directory!=boundary):
-                b=tg.Button(activity,'[..] Parent directory',listbox);b.sendclickevent(True)
+                b=_paint_object(tg.Button(activity,'[..] Parent directory',listbox),'button',args);b.sendclickevent(True)
                 controls.append((b,'dir',directory.parent))
             if args.dirs_only:
-                b=tg.Button(activity,'[Select this directory]',listbox);b.sendclickevent(True)
+                b=_paint_object(tg.Button(activity,'[Select this directory]',listbox),'button',args);b.sendclickevent(True)
                 controls.append((b,'select',directory))
             try:
                 entries,truncated=_limited_file_entries(
@@ -268,7 +299,7 @@ def run_files(args):
                 tg.TextView(activity,f'Cannot read directory: {exc}',listbox)
                 return
             for path,is_dir in entries:
-                b=tg.Button(activity,('[DIR] ' if is_dir else '       ')+path.name,listbox)
+                b=_paint_object(tg.Button(activity,('[DIR] ' if is_dir else '       ')+path.name,listbox),'button',args)
                 b.sendclickevent(True)
                 controls.append((b,'dir' if is_dir else 'select',path))
             if truncated:
@@ -337,12 +368,14 @@ def run_progress(args):
     last=None;done_since=None;started=time.monotonic()
     with tg.Connection() as c:
         activity=tg.Activity(c,intercept=True)
-        root=tg.LinearLayout(activity,vertical=True)
-        title=tg.TextView(activity,args.title or 'Progress',root)
+        from tgk.theme import apply_activity_theme,get_theme
+        apply_activity_theme(activity,get_theme())
+        root=_paint_object(tg.LinearLayout(activity,vertical=True),'root',args)
+        title=_paint_object(tg.TextView(activity,args.title or 'Progress',root),'heading',args)
         title.settextsize(20)
-        info=tg.TextView(activity,'Awaiting progress data ...',root)
-        bar=tg.ProgressBar(activity,root)
-        close=tg.Button(activity,'Cancel',root);close.sendclickevent(True)
+        info=_paint_object(tg.TextView(activity,'Awaiting progress data ...',root),'heading',args)
+        bar=_paint_object(tg.ProgressBar(activity,root),'progress',args)
+        close=_paint_object(tg.Button(activity,'Cancel',root),'cancel',args);close.sendclickevent(True)
         outcome=1;next_read=0
         while True:
             now=time.monotonic()
@@ -400,19 +433,87 @@ def run_doctor(args):
     return 0 if result['c_renderer']=='available' and (
         not args.connect or 'termuxgui_connection_version' in result) else 2
 
+
+def run_themes(args):
+    """List available named presets or expose semantic roles as JSON."""
+    import json
+    from tgk.theme import PRESETS,ROLES,DEFAULT_NAME,resolve_theme
+    if args.json:
+        print(json.dumps({"default":DEFAULT_NAME,"roles":list(ROLES),
+                          "presets":{name:resolve_theme(name).to_dict()["colors"]
+                                     for name in PRESETS}},
+                         ensure_ascii=False,indent=2))
+    else:
+        print("TGK presets (default: "+DEFAULT_NAME+"):")
+        for name in PRESETS:print("  "+name)
+        print("Roles: "+", ".join(ROLES))
+    return 0
+
+
+def run_demo(args):
+    from tgk.demos import Laboratory,SCENARIOS
+    from tgk.theme import get_theme
+    if args.list:
+        for name,description in SCENARIOS.items():print(name+"  "+description)
+        return 0
+    Laboratory(scenario=args.scenario,theme=get_theme()).run()
+    return 0
+
+
+def _configure_theme(args,parser):
+    """Select preset/file first; command-line role overrides have final precedence."""
+    from tgk.theme import load_theme,resolve_theme,set_theme
+    try:
+        chosen=load_theme(args.theme_file) if args.theme_file else resolve_theme()
+        if args.theme:chosen=resolve_theme(args.theme)
+        overrides={}
+        for item in args.color:
+            if '=' not in item:raise ValueError("--color requires ROLE=#HEX")
+            role,value=item.split('=',1)
+            if not role.strip():raise ValueError("--color requires a role")
+            overrides[role.strip()]=value.strip()
+        set_theme(chosen,**overrides)
+        from tgk.theme import normalize_color
+        target_types={'root','heading','input','button','cancel','image','canvas','progress','*'}
+        args.object_colors={}
+        for item in args.object_color:
+            if '=' not in item or '.' not in item.split('=',1)[0]:
+                raise ValueError('--object-color requires TARGET.PROPERTY=#HEX')
+            locator,hexvalue=item.split('=',1)
+            target,property_name=locator.rsplit('.',1)
+            if target not in target_types or property_name not in ('background','text'):
+                raise ValueError('unsupported --object-color target or property')
+            args.object_colors[(target,property_name)]=normalize_color(hexvalue.strip())
+    except (ValueError,OSError) as exc:
+        parser.error(str(exc))
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
-    a=sub.add_parser('prompt',help='prompt for text; prints answer');a.add_argument('--title');a.add_argument('--default',default='');a.add_argument('--password',action='store_true');a.add_argument('--multiline',action='store_true');a.set_defaults(run=run_prompt)
-    a=sub.add_parser('confirm',help='yes/no choice; exit status 0=yes, 1=no');a.add_argument('message');a.add_argument('--title');a.set_defaults(run=run_confirm)
-    a=sub.add_parser('choose',help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append');a.set_defaults(run=run_choose)
-    a=sub.add_parser('show',help='read text file or piped input in native scroll view');a.add_argument('file');a.add_argument('--title');a.add_argument('--max-chars',type=int,default=100_000);a.set_defaults(run=run_show)
-    a=sub.add_parser('image',help='PNG/JPG native image viewer');a.add_argument('file');a.add_argument('--max-bytes',type=int,default=24_000_000);a.set_defaults(run=run_image)
-    a=sub.add_parser('files',help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=150);a.set_defaults(run=run_files)
-    a=sub.add_parser('progress',help='watch a JSON progress file and display a native progress bar');a.add_argument('file');a.add_argument('--title');a.add_argument('--auto-close',action='store_true');a.add_argument('--timeout',type=float,default=0);a.set_defaults(run=run_progress)
-    a=sub.add_parser('doctor',help='inspect Termux:GUI/C runtime; --connect checks actual IPC');a.add_argument('--connect',action='store_true');a.add_argument('--json',action='store_true');a.set_defaults(run=run_doctor)
-    a=sub.add_parser('canvas-demo',help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=25);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
+    theme_flags=argparse.ArgumentParser(add_help=False)
+    theme_flags.add_argument('--theme',help='Named preset (see: tgk themes)')
+    theme_flags.add_argument('--theme-file',help='JSON: {"theme":"ocean","colors":{"accent":"#18D0F9"}}')
+    theme_flags.add_argument('--color',action='append',default=[],metavar='ROLE=#HEX',
+                             help='Override any semantic color role; repeatable')
+    theme_flags.add_argument('--object-color',action='append',default=[],
+                             metavar='TARGET.PROPERTY=#HEX',
+                             help='Override native root/heading/input/button/cancel/... .text or .background')
+    a=sub.add_parser('prompt',parents=[theme_flags],help='prompt for text; prints answer');a.add_argument('--title');a.add_argument('--default',default='');a.add_argument('--password',action='store_true');a.add_argument('--multiline',action='store_true');a.set_defaults(run=run_prompt)
+    a=sub.add_parser('confirm',parents=[theme_flags],help='yes/no choice; exit status 0=yes, 1=no');a.add_argument('message');a.add_argument('--title');a.set_defaults(run=run_confirm)
+    a=sub.add_parser('choose',parents=[theme_flags],help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append');a.set_defaults(run=run_choose)
+    a=sub.add_parser('show',parents=[theme_flags],help='read text file or piped input in native scroll view');a.add_argument('file');a.add_argument('--title');a.add_argument('--max-chars',type=int,default=100_000);a.set_defaults(run=run_show)
+    a=sub.add_parser('image',parents=[theme_flags],help='PNG/JPG native image viewer');a.add_argument('file');a.add_argument('--max-bytes',type=int,default=24_000_000);a.set_defaults(run=run_image)
+    a=sub.add_parser('files',parents=[theme_flags],help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=150);a.set_defaults(run=run_files)
+    a=sub.add_parser('progress',parents=[theme_flags],help='watch a JSON progress file and display a native progress bar');a.add_argument('file');a.add_argument('--title');a.add_argument('--auto-close',action='store_true');a.add_argument('--timeout',type=float,default=0);a.set_defaults(run=run_progress)
+    a=sub.add_parser('doctor',parents=[theme_flags],help='inspect Termux:GUI/C runtime; --connect checks actual IPC');a.add_argument('--connect',action='store_true');a.add_argument('--json',action='store_true');a.set_defaults(run=run_doctor)
+    a=sub.add_parser('canvas-demo',parents=[theme_flags],help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=25);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
+    a=sub.add_parser('themes',parents=[theme_flags],help='list theme presets and semantic roles')
+    a.add_argument('--json',action='store_true');a.set_defaults(run=run_themes)
+    a=sub.add_parser('demo',parents=[theme_flags],help='run 16 graduated UI and theme studio labs')
+    a.add_argument('--scenario',default='12_studio',help='scenario code, see --list')
+    a.add_argument('--list',action='store_true');a.set_defaults(run=run_demo)
     args=p.parse_args(argv)
+    _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
     if args.command=='image' and args.max_bytes<=0:p.error('--max-bytes must be positive')
     for name in ('timeout','seconds'):

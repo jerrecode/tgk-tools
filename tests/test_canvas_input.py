@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from tgk_tools.cli import run_canvas
+from tgk.theme import get_theme,rgba_channels
 
 
 class CanvasInputTests(unittest.TestCase):
@@ -58,7 +59,7 @@ class CanvasInputTests(unittest.TestCase):
 
     def test_image_pixels_are_not_rescaled_using_view_dimensions(self):
         frames = self.run_frames({'action': 'down', 'pointers': [[{'id': 7, 'x': 300, 'y': 180}]]})
-        self.assertEqual(self.pixel(frames[0], 300, 180), bytes((255, 126, 180, 255)))
+        self.assertEqual(self.pixel(frames[0], 300, 180), bytes(rgba_channels(get_theme()['accent_secondary'])))
 
     def test_terminal_events_remove_touch_markers(self):
         point = {'id': 7, 'x': 300, 'y': 180}
@@ -66,20 +67,20 @@ class CanvasInputTests(unittest.TestCase):
             with self.subTest(action=action):
                 frames = self.run_frames({'action': 'down', 'pointers': [[point]]},
                                          {'action': action, 'pointers': [[point]]})
-                self.assertNotEqual(self.pixel(frames[1], 300, 180), bytes((255, 126, 180, 255)))
+                self.assertNotEqual(self.pixel(frames[1], 300, 180), bytes(rgba_channels(get_theme()['accent_secondary'])))
 
     def test_pointer_up_removes_only_lifted_pointer(self):
         frames = self.run_frames({'action': 'pointer_up', 'index': 1, 'pointers': [[
             {'id': 7, 'x': 300, 'y': 180}, {'id': 42, 'x': 450, 'y': 180}]]})
-        self.assertEqual(self.pixel(frames[0], 300, 180), bytes((255, 126, 180, 255)))
-        self.assertNotEqual(self.pixel(frames[0], 450, 180), bytes((255, 126, 180, 255)))
+        self.assertEqual(self.pixel(frames[0], 300, 180), bytes(rgba_channels(get_theme()['accent_secondary'])))
+        self.assertNotEqual(self.pixel(frames[0], 450, 180), bytes(rgba_channels(get_theme()['accent_secondary'])))
 
     def test_invalid_coordinates_are_ignored_without_aborting_demo(self):
         for x in ('bad', None, float('nan'), float('inf'), -20, 520):
             with self.subTest(x=x):
                 frames = self.run_frames({'action': 'move', 'pointers': [[
                     {'id': 7, 'x': x, 'y': 180}, {'id': 42, 'x': 300, 'y': 180}]]})
-                self.assertEqual(self.pixel(frames[0], 300, 180), bytes((255, 126, 180, 255)))
+                self.assertEqual(self.pixel(frames[0], 300, 180), bytes(rgba_channels(get_theme()['accent_secondary'])))
 
     def test_destroy_stops_rendering_immediately(self):
         self.assertEqual(len(self.run_frames()), 0)
