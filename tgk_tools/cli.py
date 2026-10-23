@@ -417,7 +417,8 @@ def run_progress(args):
             if now>=next_read:
                 next_read=now+0.20
                 try:
-                    value,message,completed=_read_progress_state(path,args.max_progress_json_bytes)
+                    value,message,completed=_read_progress_state(
+                        path,getattr(args,'max_progress_json_bytes',_MAX_PROGRESS_JSON_BYTES))
                     snapshot=(value,message,completed)
                     if snapshot!=last:
                         last=snapshot
@@ -644,7 +645,10 @@ def main(argv=None):
     a=sub.add_parser('show',parents=[theme_flags],help='read text file or piped input in native scroll view');a.add_argument('file');a.add_argument('--title');a.add_argument('--max-chars',type=int,default=100_000);a.set_defaults(run=run_show)
     a=sub.add_parser('image',parents=[theme_flags],help='PNG/JPG native image viewer');a.add_argument('file');a.add_argument('--max-bytes',type=int,default=24_000_000);a.set_defaults(run=run_image)
     a=sub.add_parser('files',parents=[theme_flags],help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=None);a.add_argument('--icons',action='store_true',help='show semantic file/folder symbols');a.set_defaults(run=run_files)
-    a=sub.add_parser('progress',parents=[theme_flags],help='watch a JSON progress file and display a native progress bar');a.add_argument('file');a.add_argument('--title');a.add_argument('--auto-close',action='store_true');a.add_argument('--timeout',type=float,default=0);a.set_defaults(run=run_progress)
+    a=sub.add_parser('progress',parents=[theme_flags],help='watch a JSON progress file and display a native progress bar');a.add_argument('file');a.add_argument('--title');a.add_argument('--auto-close',action='store_true');a.add_argument('--timeout',type=float,default=0)
+    a.add_argument('--max-progress-json-bytes',type=int,default=None,
+                   help='max progress snapshot bytes (default: saved settings)')
+    a.set_defaults(run=run_progress)
     a=sub.add_parser('doctor',parents=[theme_flags],help='inspect Termux:GUI/C runtime; --connect checks actual IPC');a.add_argument('--connect',action='store_true');a.add_argument('--json',action='store_true');a.set_defaults(run=run_doctor)
     a=sub.add_parser('canvas-demo',parents=[theme_flags],help='C-rendered animated RGBA canvas');a.add_argument('--width',type=int,default=512);a.add_argument('--height',type=int,default=512);a.add_argument('--fps',type=int,default=None);a.add_argument('--seconds',type=float,default=0);a.set_defaults(run=run_canvas)
     a=sub.add_parser('themes',parents=[theme_flags],help='list theme presets and semantic roles')
@@ -744,7 +748,8 @@ def main(argv=None):
         except (RuntimeError,ValueError,OSError) as exc:
             print('tgk:',str(exc),file=sys.stderr);return 2
     from tgk.config import load_config
-    settings=load_config()
+    try:settings=load_config()
+    except (ValueError,OSError) as exc:p.error(str(exc))
     if args.command=='files' and args.max_items is None:
         args.max_items=settings['tools']['max_file_items']
     if args.command=='canvas-demo' and args.fps is None:
@@ -765,6 +770,8 @@ def main(argv=None):
     if args.command=='canvas-demo' and (args.width<=0 or args.height<=0 or args.width*args.height>4_194_304):
         p.error('canvas dimensions must be positive and at most 4194304 pixels')
     if args.command=='files' and not 1<=args.max_items<=500:p.error('--max-items must be in 1..500')
+    if args.command=='progress' and not 1024<=args.max_progress_json_bytes<=8388608:
+        p.error('--max-progress-json-bytes must be 1024..8388608')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
     if args.command in ('adaptive-demo','layout-plan'):
         if args.touch_target_dp<32 or args.grid_unit_dp<1:
