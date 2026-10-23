@@ -385,6 +385,51 @@ validated. A GitHub Actions workflow provides a complete downloadable
 `tgk-layered-icon-pack` asset artifact; device raster quality remains
 subject to font/rendering differences.
 
+## Persistent TGK configuration and installed preset catalogs (0.6.0)
+
+Installing TGK or TGK Tools now initializes four **user-owned,
+non-overwritten** JSON files at `$TGK_CONFIG_HOME`, or under
+`$XDG_CONFIG_HOME/tgk` / `~/.config/tgk`:
+
+```text
+config.json
+presets/colors.json
+presets/typography.json
+presets/options.json
+```
+
+The default configuration selects `midnight` palette, `body` font style,
+and `balanced` mobile layout. Existing themes/typography are exported with
+all their shipped values. Editing these files changes future new GUI
+sessions without modifying installed Python code or reinstalling. Each
+installed palette has its complete base color roles; derived button/tab
+states update automatically. Option presets include balanced, compact,
+accessible and performance. Explicit command flags and widget styling
+override the configured defaults.
+
+```sh
+tgk config init --json      # fill only missing files; preserve edited presets
+tgk config paths --json     # inspect actual file locations
+tgk config show --json      # show effective core/system settings
+tgk config validate --json  # validate config, palette and font registries
+tgk themes --json           # use edited palette catalog and default
+tgk typography --json       # use edited font styles and default
+tgk style-catalog --json    # detailed color/style definitions
+tgk layout-plan --width-dp 393 --height-dp 852 --json
+```
+
+New apps inherit the selected palette, typography, orientation, layout
+spacing/touch sizing and the configured scheduler/I/O budgets unless a
+caller supplies explicit overrides. `tgk icons-build` inherits low/mid/high
+raster export resolutions when omitted. Resource values remain bounded
+and validated; invalid JSON causes an explicit error.
+
+The tools installer requires core TGK >=0.6.0, initializes presets even
+when TGK was already installed, and checks that the existing configuration
+is valid. The offline source bundle installs both packages as durable copies
+and initializes the same four JSON files. No automatically downloaded
+font binaries are included.
+
 ## Shell commands
 
 ```sh
