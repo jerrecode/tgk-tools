@@ -453,6 +453,31 @@ The existing `tgk config palette NAME`, `typography NAME`, and `options NAME`
 continue to inspect individual preset files. The configuration is per-user
 and does not adjust Android system-wide settings.
 
+## Saved configuration with atomic updates
+
+`tgk config init` creates a user-owned TGK config directory with
+`config.json` and separately editable `palettes/`, `text_styles/`
+and `options/` presets. Reinstallation preserves existing files.
+
+```sh
+tgk config path
+tgk config list
+tgk config set --palette ocean --typography title_h2 --options battery_saver
+tgk config set --orientation landscape --window-mode dialog
+tgk config show
+tgk config validate
+```
+
+The default palette, text style, profile, window mode and orientation are
+persisted in **one validated, atomic update** via TGK 0.6.2. An option
+profile is saved by name rather than copied once into unrelated settings;
+changes to the shipped or user-edited profile can therefore apply later,
+while fields individually customized away from their defaults stay in
+effect. An invalid setting leaves the original configuration untouched.
+CLI flags and per-object overrides continue to take precedence over
+saved settings. Native widgets expose only the styling functions supported
+by Termux:GUI; rich formatting uses an isolated local WebView.
+
 ## Shell commands
 
 ```sh
