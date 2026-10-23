@@ -52,7 +52,7 @@ tgk prompt --theme paper --title 'Name'
 tgk choose alpha beta --theme ocean --color accent=#33AAFF
 tgk files --start "$HOME" --theme forest --color button=#1A6552
 tgk canvas-demo --theme cyberpunk --color accent=#FF34E7
-tgk demo --list                    # print the 13 supported interactive scenarios
+tgk demo --list                    # print the 16 supported interactive scenarios
 tgk demo --scenario 12_studio --theme lavender
 tgk demo --scenario 13_workbench --theme midnight --color accent=#18D0F9
 ```
@@ -74,11 +74,20 @@ Load them with `tgk demo --theme-file ./my_theme.json`. Use repeated
 `--color ROLE=#HEX` flags to override individual semantic roles; they take
 precedence over the theme file. `--theme PRESET`, if present, replaces the
 preset named inside `--theme-file`. Malformed color values or unknown roles
-are rejected before opening the Android GUI. For **per-widget overrides**,
+are rejected before opening the Android GUI. For named native tool controls, use `--object-color TARGET.PROPERTY=#HEX`
+(repeatable). Supported targets: `root`, `heading`, `input`, `button`,
+`cancel`, `image`, `canvas`, `progress` and `*` (all tagged objects).
+The property is `text` or `background`. Example:
+`tgk files --theme ocean --object-color cancel.background=#7C2251
+--object-color heading.text=#FFFFFF`. Unsupported targets/colors fail early.
+These switches affect tagged native tool controls, not arbitrary internal
+widgets inside `tgk demo`. 
+
+For **per-widget overrides**,
 programmers can use TGK's `colors={"role":"#HEX"}` on a nested component or
 `background_color` / `text_color` on an individual object.
 
-The `tgk demo` launcher exposes the same **13 increasingly complex layout
+The `tgk demo` launcher exposes the same **16 increasingly complex layout
 and interaction probes** implemented in the core TGK package. Its
 `12_studio` and `13_workbench` scenarios include preset selection, color
 scales, editable semantic roles, RGB sliders, nested layouts and complex
