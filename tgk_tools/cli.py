@@ -5,16 +5,38 @@ import sys
 from pathlib import Path
 from tgk.widgets import App, BoxLayout, ScrollView, Label, Button, TextInput, CheckBox
 
-def layout(title):
-    root=BoxLayout(orientation='vertical',padding=12)
-    root.add_widget(Label(text=title,font_size=22,height=65))
+def _paint_object(view,part,args):
+    """Apply named per-object shell flags after creating a native/TGK widget.
+
+    Target names: root, heading, input, button, cancel, image, canvas,
+    progress. These flags override semantic theme colors on that object
+    without modifying sibling Views or global preset definitions.
+    """
+    from tgk.theme import tgui_color
+    styles=getattr(args,'object_colors',{}) if args is not None else {}
+    for property_name in ('background','text'):
+        color=styles.get((part,property_name),styles.get(('*',property_name)))
+        if color is None:continue
+        if hasattr(view,'_native'):
+            setattr(view, 'background_color' if property_name=='background'
+                    else 'text_color',color)
+        else:
+            setter=getattr(view,'setbackgroundcolor' if property_name=='background'
+                           else 'settextcolor',None)
+            if callable(setter):setter(tgui_color(color))
+    return view
+
+
+def layout(title,args=None):
+    root=_paint_object(BoxLayout(orientation='vertical',padding=12),'root',args)
+    root.add_widget(_paint_object(Label(text=title,font_size=22,height=65),'heading',args))
     return root
 
 def run_prompt(args):
     class Prompt(App):
         result=None
         def build(self):
-            root=layout(args.title or 'Enter text')
+            root=layout(args.title or 'Enter text',args)
             self.entry=TextInput(text=args.default or '',multiline=args.multiline,password=args.password,height=85)
             root.add_widget(self.entry)
             bar=BoxLayout(orientation='horizontal',height=55)
@@ -34,7 +56,7 @@ def run_confirm(args):
     class Confirm(App):
         accepted=False
         def build(self):
-            root=layout(args.title or 'Confirm')
+            root=layout(args.title or 'Confirm',args)
             root.add_widget(Label(text=args.message,height=90))
             buttons=BoxLayout(height=60)
             for name,choice in [('No',False),('Yes',True)]:
@@ -59,7 +81,7 @@ def run_choose(args):
     class Choose(App):
         result=None
         def build(self):
-            root=layout(args.title or 'Choose an option')
+            root=layout(args.title or 'Choose an option',args)
             scroll=ScrollView()
             listbox=BoxLayout(orientation='vertical')
             if args.multi:
@@ -94,7 +116,7 @@ def run_show(args):
     if len(text)>args.max_chars:raise ValueError('Input too large; use --max-chars explicitly')
     class Viewer(App):
         def build(self):
-            root=layout(args.title or (args.file if args.file!='-' else 'Text viewer'))
+            root=layout(args.title or (args.file if args.file!='-' else 'Text viewer'),args)
             scroll=ScrollView()
             scroll.add_widget(Label(text=text))
             root.add_widget(scroll)
@@ -451,6 +473,17 @@ def _configure_theme(args,parser):
             if not role.strip():raise ValueError("--color requires a role")
             overrides[role.strip()]=value.strip()
         set_theme(chosen,**overrides)
+        from tgk.theme import normalize_color
+        target_types={'root','heading','input','button','cancel','image','canvas','progress','*'}
+        args.object_colors={}
+        for item in args.object_color:
+            if '=' not in item or '.' not in item.split('=',1)[0]:
+                raise ValueError('--object-color requires TARGET.PROPERTY=#HEX')
+            locator,hexvalue=item.split('=',1)
+            target,property_name=locator.rsplit('.',1)
+            if target not in target_types or property_name not in ('background','text'):
+                raise ValueError('unsupported --object-color target or property')
+            args.object_colors[(target,property_name)]=normalize_color(hexvalue.strip())
     except (ValueError,OSError) as exc:
         parser.error(str(exc))
 
@@ -462,6 +495,9 @@ def main(argv=None):
     theme_flags.add_argument('--theme-file',help='JSON: {"theme":"ocean","colors":{"accent":"#18D0F9"}}')
     theme_flags.add_argument('--color',action='append',default=[],metavar='ROLE=#HEX',
                              help='Override any semantic color role; repeatable')
+    theme_flags.add_argument('--object-color',action='append',default=[],
+                             metavar='TARGET.PROPERTY=#HEX',
+                             help='Override native root/heading/input/button/cancel/... .text or .background')
     a=sub.add_parser('prompt',parents=[theme_flags],help='prompt for text; prints answer');a.add_argument('--title');a.add_argument('--default',default='');a.add_argument('--password',action='store_true');a.add_argument('--multiline',action='store_true');a.set_defaults(run=run_prompt)
     a=sub.add_parser('confirm',parents=[theme_flags],help='yes/no choice; exit status 0=yes, 1=no');a.add_argument('message');a.add_argument('--title');a.set_defaults(run=run_confirm)
     a=sub.add_parser('choose',parents=[theme_flags],help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append');a.set_defaults(run=run_choose)
