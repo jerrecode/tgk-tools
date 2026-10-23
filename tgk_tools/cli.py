@@ -195,6 +195,41 @@ def run_canvas(args):
     print(f'frames={frame}',file=sys.stderr)
     return 0
 
+def _limited_file_entries(directory, *, boundary=None, hidden=False,
+                          dirs_only=False, extension=(), max_items=150):
+    """Return sorted visible entries with O(max_items) auxiliary memory.
+
+    A directory with millions of children must not become a Python list
+    merely to display up to max_items Android buttons. This still scans all
+    directory entries; true paged browsing requires a separate UI contract.
+    """
+    import heapq
+
+    if max_items < 1:
+        raise ValueError('max_items must be positive')
+
+    def eligible():
+        for path in directory.iterdir():
+            try:
+                if not hidden and path.name.startswith('.'):
+                    continue
+                # Resolve symlinks before enforcing an optional browsing boundary.
+                if boundary is not None and not path.resolve().is_relative_to(boundary):
+                    continue
+                is_dir = path.is_dir()
+                if not is_dir and (dirs_only or
+                                   (extension and path.suffix.lower().lstrip('.') not in extension)):
+                    continue
+                # Directory-first, case-folded ordering; name breaks ties.
+                yield (not is_dir, path.name.casefold(), path.name, path, is_dir)
+            except (OSError, RuntimeError):
+                # A file can vanish or become inaccessible during enumeration.
+                continue
+
+    selected = heapq.nsmallest(max_items + 1, eligible())
+    return [(item[3], item[4]) for item in selected[:max_items]], len(selected) > max_items
+
+
 def run_files(args):
     import termuxgui as tg
     start=Path(args.start).expanduser().resolve()
@@ -225,23 +260,19 @@ def run_files(args):
                 b=tg.Button(activity,'[Select this directory]',listbox);b.sendclickevent(True)
                 controls[b]=('select',directory)
             try:
-                entries=sorted(directory.iterdir(),key=lambda p:(not p.is_dir(),p.name.casefold()))
+                entries,truncated=_limited_file_entries(
+                    directory,boundary=boundary,hidden=args.hidden,
+                    dirs_only=args.dirs_only,extension=extension,
+                    max_items=args.max_items)
             except OSError as exc:
                 tg.TextView(activity,f'Cannot read directory: {exc}',listbox)
                 return
-            shown=0
-            for path in entries:
-                if not args.hidden and path.name.startswith('.'):continue
-                if boundary and not path.resolve().is_relative_to(boundary):continue
-                if not (path.is_dir() or (not args.dirs_only and
-                        (not extension or path.suffix.lower().lstrip('.') in extension))):continue
-                if shown>=args.max_items:
-                    tg.TextView(activity,f'Only first {args.max_items} entries shown',listbox)
-                    break
-                b=tg.Button(activity,('[DIR] ' if path.is_dir() else '       ')+path.name,listbox)
+            for path,is_dir in entries:
+                b=tg.Button(activity,('[DIR] ' if is_dir else '       ')+path.name,listbox)
                 b.sendclickevent(True)
-                controls[b]=('dir' if path.is_dir() else 'select',path)
-                shown+=1
+                controls[b]=('dir' if is_dir else 'select',path)
+            if truncated:
+                tg.TextView(activity,f'Only first {args.max_items} entries shown',listbox)
         render(start)
         for event in c.events():
             if event.type=='back':
