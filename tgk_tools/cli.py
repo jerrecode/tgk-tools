@@ -506,6 +506,7 @@ def run_demo(args):
 def _configure_theme(args,parser):
     """Select preset/file first; command-line role overrides have final precedence."""
     from tgk.theme import load_theme,resolve_theme,set_theme
+    from tgk.config import settings
     try:
         chosen=load_theme(args.theme_file) if args.theme_file else resolve_theme()
         if args.theme:chosen=resolve_theme(args.theme)
@@ -526,7 +527,7 @@ def _configure_theme(args,parser):
             if value is not None:style_options[field]=value
         for flag in ("italic","underline","strike"):
             if getattr(args,flag):style_options[flag]=True
-        set_text_style(args.text_style,**style_options)
+        set_text_style(args.text_style or settings()["defaults"]["typography"],**style_options)
         args.object_fonts={}
         allowed={"root","heading","input","button","cancel","image",
                  "canvas","progress","*"}
@@ -612,6 +613,11 @@ def _run_icons_build(args):
     return 0
 
 
+def _run_config_lazily(args):
+    from tgk_tools.config_cli import run_config
+    return run_config(args)
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
@@ -623,7 +629,8 @@ def main(argv=None):
     theme_flags.add_argument('--object-color',action='append',default=[],
                              metavar='TARGET.PROPERTY=#HEX',
                              help='Override native root/heading/input/button/cancel/... .text or .background')
-    theme_flags.add_argument('--text-style',default='body',help='Typography preset')
+    theme_flags.add_argument('--text-style',default=None,
+                             help='Typography preset; defaults to installed TGK config')
     theme_flags.add_argument('--font-family',choices=('sans','serif','mono'))
     theme_flags.add_argument('--font-size',type=int)
     theme_flags.add_argument('--font-weight',type=int)
@@ -721,6 +728,17 @@ def main(argv=None):
     a.add_argument('--touch-target-dp',type=int,default=48)
     a.add_argument('--grid-unit-dp',type=int,default=4)
     a.set_defaults(run=lambda args:_run_mobile('run_adaptive_demo',args))
+    a=sub.add_parser('config',parents=[theme_flags],
+                     help='show, initialize, validate or change persistent TGK defaults')
+    a.add_argument('action',choices=('show','init','validate','paths','list','set'),
+                   nargs='?',default='show')
+    a.add_argument('--palette',help='new default palette name')
+    a.add_argument('--typography',help='new default typography preset')
+    a.add_argument('--options',help='new default option profile')
+    a.add_argument('--orientation',choices=('system','portrait','landscape'))
+    a.add_argument('--window-mode',choices=('normal','dialog','overlay'))
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=_run_config_lazily)
     a=sub.add_parser('benchmark',parents=[theme_flags],
                      help='bounded Python-only performance measurements (not Android FPS)')
     a.add_argument('--nodes',type=int,default=256)
@@ -745,6 +763,13 @@ def main(argv=None):
             p.error('touch target must be >=32dp and grid unit must be >=1dp')
         if args.command=='layout-plan' and not 0<=args.items<=2000:
             p.error('--items must be in 0..2000')
+    if args.command=='config':
+        requested=(args.palette,args.typography,args.options,
+                   args.orientation,args.window_mode)
+        if args.action!='set' and any(value is not None for value in requested):
+            p.error('default selection flags require: tgk config set')
+        if args.action=='set' and not any(value is not None for value in requested):
+            p.error('config set requires at least one selection flag')
     if args.command=='benchmark':
         if not 1<=args.nodes<=5000 or not 1<=args.iterations<=10000 or not 1<=args.samples<=10:
             p.error('benchmark bounds: --nodes 1..5000, --iterations 1..10000, --samples 1..10')
