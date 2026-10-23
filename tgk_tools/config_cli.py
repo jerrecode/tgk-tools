@@ -11,8 +11,9 @@ def _atomic_persist(selected):
     """Validate and atomically replace the user's own config, never presets."""
     import os
     import tempfile
-    from tgk.config import validate_config,MAX_JSON_BYTES
+    from tgk.config import validate_config,MAX_JSON_BYTES,clear_config_cache,option_config
     value=validate_config(selected)
+    option_config(value["ui"]["option_profile"])
     path=config_path()
     if path.is_symlink():raise ValueError("refusing to overwrite a config symlink")
     data=(json.dumps(selected,ensure_ascii=False,indent=2,sort_keys=True)+"\n").encode("utf-8")
@@ -29,7 +30,8 @@ def _atomic_persist(selected):
     finally:
         try:os.unlink(tmp)
         except FileNotFoundError:pass
-    return value
+    clear_config_cache()
+    return load_config()
 
 
 def _apply_defaults(args):
@@ -57,17 +59,11 @@ def _apply_defaults(args):
 
     if args.options is not None:
         name=_safe_name(args.options)
-        snapshot=option_config(name)  # validates even custom option files
-        # Profile selection is an explicit snapshot: persist those defaults.
-        # Users may subsequently edit any individual setting in config.json.
-        if name in OPTIONS:
-            source=OPTIONS[name]
-        else:
-            source=_read_json(config_home()/"options"/(name+".json"))["settings"]
-        for section,values in source.items():
-            target=raw.setdefault(section,{})
-            target.update(values)
-        validate_config(snapshot)
+        option_config(name)  # validate shipped/custom profile before writing
+        # Save selector, not a snapshot of its numeric values. A snapshot
+        # would permanently pin battery/performance values when switching
+        # to another profile. Runtime merges only explicitly edited fields.
+        ui["option_profile"]=name
     saved=_atomic_persist(raw)
     return {"settings":saved,"profile_applied":args.options,
             "config_path":str(config_path())}
