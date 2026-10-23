@@ -174,7 +174,9 @@ class AdvancedLab:
                 layer.add_widget(self.tabs)
 
                 self.popup=Popup(visible=False,width=330,height=260,
-                                 padding=10,spacing=8,background_color="#243452")
+                                 padding=10,spacing=8)
+                # Inherit selected Activity theme, including saved defaults;
+                # do not pin the popup to a hard-coded startup blue.
                 self.popup.add_widget(Label(text="Popup / Overlay View",height=46))
                 self.popup.add_widget(RichTextLabel(
                     text="Live popup content using an existing view. Not yet a full focus-trapping modal.",
