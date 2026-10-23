@@ -103,6 +103,38 @@ class ConfigCLITests(unittest.TestCase):
         self.assertEqual(out,"")
         self.assertIn("lowercase",error)
 
+    def test_option_selection_persists_profile_name_and_keeps_custom_fields(self):
+        initialize_config()
+        from tgk.config import update_config,load_config
+        update_config("io","workers",6)
+        status,out,error=self.run_cmd("config","set","--options","battery_saver",
+                                      "--palette","ocean","--compact")
+        self.assertEqual(status,0,error)
+        selected=json.loads(out)
+        self.assertEqual(selected["settings"]["ui"]["option_profile"],"battery_saver")
+        self.assertEqual(selected["settings"]["ui"]["theme"],"ocean")
+        self.assertEqual(selected["settings"]["io"]["workers"],6)
+        self.assertEqual(selected["settings"]["runtime"]["clock_callbacks_per_tick"],48)
+        raw=json.loads((self.home/"config.json").read_text())
+        self.assertEqual(raw["ui"]["option_profile"],"battery_saver")
+        self.assertEqual(raw["io"]["workers"],6)
+        self.assertEqual(load_config()["runtime"]["clock_callbacks_per_tick"],48)
+
+    def test_config_set_is_one_transaction_and_rollback_on_invalid_choice(self):
+        initialize_config()
+        old=(self.home/"config.json").read_bytes()
+        code,out,err=self.run_cmd("config","set","--palette","not_a_palette")
+        self.assertEqual(code,2)
+        self.assertEqual(out,"")
+        self.assertTrue(err)
+        self.assertEqual((self.home/"config.json").read_bytes(),old)
+        code,out,err=self.run_cmd("config","set","--orientation","landscape",
+                                  "--window-mode","dialog","--compact")
+        self.assertEqual(code,0,err)
+        selected=json.loads(out)["settings"]
+        self.assertEqual(selected["ui"]["orientation"],"landscape")
+        self.assertEqual(selected["ui"]["window_mode"],"dialog")
+
     def test_corrupt_config_allows_init_recovery_and_fails_other_commands(self):
         initialize_config()
         (self.home/"config.json").write_text("{ not-json",encoding="utf-8")
