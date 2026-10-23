@@ -25,20 +25,20 @@ To install the framework directly without retaining the source checkout, run `sh
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.2.0.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.3.0.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.2.0.tar.gz
-cd tgk_bundle_v0.2.0
+tar -xzf tgk_bundle_v0.3.0.tar.gz
+cd tgk_bundle_v0.3.0
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.2.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.3.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.2.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.3.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -196,6 +196,45 @@ sh examples/18_custom_ui_style.sh
 The advanced TGK core APIs have been merged into `jerrecode/tgk/main`.
 This tools feature branch now tests against the installed default TGK core
 branch; no temporary checkout of an unmerged core branch is required.
+
+## Bounded media and data processing — non-GUI pipeline commands
+
+The `tgk pipeline` subcommand is a composable, JSON-output interface to
+TGK's resource-bounded binary streaming library. It works in Termux or
+ordinary Python without opening an Android Activity.
+
+```sh
+tgk pipeline hash video.mp4 --chunk-bytes 65536 --max-bytes 536870912
+tgk pipeline copy video.mp4 /tmp/video-copy.mp4 --timeout 30
+tgk pipeline probe video.mp4 --timeout 10
+tgk pipeline download https://example.org/data.bin /tmp/data.bin \
+    --allow-host example.org --max-bytes 10485760 --timeout 20
+```
+
+- `hash`: stream SHA-256 and byte count without accumulating the input.
+- `copy`: atomic sibling temporary file + rename; `--overwrite` is
+  mandatory to replace an existing file.
+- `probe`: local FFprobe metadata (`pkg install ffmpeg`), with bounded
+  JSON response and deadline.
+- `download`: opt-in HTTPS-only by default, with redirect refusal,
+  optional repeatable `--allow-host`, and explicit `--allow-http`
+  for insecure endpoints.
+
+Every successful command prints exactly one JSON object on stdout; errors
+go to stderr and exit with code 2. `--max-bytes`, `--chunk-bytes`,
+`--max-metadata-bytes` and `--timeout` are validated. No shell-string
+interpolation is used. HTTP(S) host allowlists are not DNS/IP SSRF defenses:
+treat remote resources as untrusted and apply network policy externally.
+
+Direct Python users can access `tgk.io_pipeline.Limits`,
+`transfer()`, `copy_file()`, `hash_file()`, `download()`,
+`ffprobe()` and `BoundedPool` for configurable small-thread-pool
+pipelines with bounded in-flight submissions.
+
+These are foundations for future FFmpeg frame extraction, buffering,
+streaming and format-specific processors; no broad protocol support or
+full media playback is claimed. Benchmarks and power use on Android remain
+to be measured.
 
 ## Shell commands
 
