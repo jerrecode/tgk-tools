@@ -7,70 +7,49 @@ from tgk.config import (config_home,config_path,initialize_config,load_config,
                         option_config,_read_json)
 
 
-def _atomic_persist(selected):
-    """Validate and atomically replace the user's own config, never presets."""
-    import os
-    import tempfile
-    from tgk.config import validate_config,MAX_JSON_BYTES
-    value=validate_config(selected)
-    path=config_path()
-    if path.is_symlink():raise ValueError("refusing to overwrite a config symlink")
-    data=(json.dumps(selected,ensure_ascii=False,indent=2,sort_keys=True)+"\n").encode("utf-8")
-    if len(data)>MAX_JSON_BYTES:raise ValueError("configuration size limit exceeded")
-    path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
-    fd,tmp=tempfile.mkstemp(prefix=".tgk-config-",dir=path.parent)
-    try:
-        with os.fdopen(fd,"wb") as out:
-            os.fchmod(out.fileno(),0o600)
-            out.write(data)
-            out.flush()
-            os.fsync(out.fileno())
-        os.replace(tmp,path)
-    finally:
-        try:os.unlink(tmp)
-        except FileNotFoundError:pass
-    return value
-
-
 def _apply_defaults(args):
-    from tgk.config import DEFAULT_CONFIG,validate_config,OPTIONS,_safe_name
-    from tgk.theme import PRESETS,load_theme
-    from tgk.typography import PRESETS as TEXT_PRESETS
-    from copy import deepcopy
-
-    raw=_read_json(config_path()) if config_path().exists() else deepcopy(DEFAULT_CONFIG)
-    # Reject unknown/unsafe settings before applying any patches.
-    validate_config(raw)
-    ui=raw.setdefault("ui",{})
+    """Persist all selected defaults as ONE fully validated transaction."""
+    from tgk.config import update_settings,option_config,_safe_name
+    from tgk.theme import PRESETS as PALETTES,load_theme
+    from tgk.typography import PRESETS as FONTS
+    ui={}
     if args.palette is not None:
         name=_safe_name(args.palette)
-        if name not in PRESETS:raise ValueError("unknown palette preset "+name)
-        candidate=config_home()/"palettes"/(name+".json")
-        if candidate.exists():load_theme(candidate)
+        preset=config_home()/"palettes"/(name+".json")
+        if name not in PALETTES and not preset.is_file():
+            raise ValueError("unknown palette preset "+name)
+        if preset.is_file():load_theme(preset)
         ui["theme"]=name
     if args.typography is not None:
         name=_safe_name(args.typography)
-        if name not in TEXT_PRESETS:raise ValueError("unknown typography preset "+name)
+        preset=config_home()/"text_styles"/(name+".json")
+        if name not in FONTS and not preset.is_file():
+            raise ValueError("unknown typography preset "+name)
         ui["text_style"]=name
-    if args.orientation is not None:ui["orientation"]=args.orientation
-    if args.window_mode is not None:ui["window_mode"]=args.window_mode
-
     if args.options is not None:
         name=_safe_name(args.options)
-        snapshot=option_config(name)  # validates even custom option files
-        # Profile selection is an explicit snapshot: persist those defaults.
-        # Users may subsequently edit any individual setting in config.json.
-        if name in OPTIONS:
-            source=OPTIONS[name]
-        else:
-            source=_read_json(config_home()/"options"/(name+".json"))["settings"]
-        for section,values in source.items():
-            target=raw.setdefault(section,{})
-            target.update(values)
-        validate_config(snapshot)
-    saved=_atomic_persist(raw)
-    return {"settings":saved,"profile_applied":args.options,
+        option_config(name)  # validate the profile before changing anything
+        ui["option_profile"]=name
+    if args.orientation is not None:ui["orientation"]=args.orientation
+    if args.window_mode is not None:ui["window_mode"]=args.window_mode
+    settings=update_settings({"ui":ui})
+    return {"settings":settings,"profile_applied":args.options,
             "config_path":str(config_path())}
+
+
+def _edit_one_setting(args):
+    from tgk.config import update_config
+    if not args.name or not args.key:
+        raise ValueError("edit/reset requires SECTION KEY")
+    if args.action=="reset":
+        if args.value is not None:raise ValueError("reset does not accept VALUE")
+        settings=update_config(args.name,args.key,None,reset=True)
+    else:
+        if args.value is None:raise ValueError("edit requires SECTION KEY VALUE")
+        try:value=json.loads(args.value)
+        except json.JSONDecodeError:value=args.value
+        settings=update_config(args.name,args.key,value)
+    return {"settings":settings,"config_path":str(config_path())}
 
 
 def _list_presets():
@@ -124,6 +103,8 @@ def run_config(args):
         result=_list_presets()
     elif action=="set":
         result=_apply_defaults(args)
+    elif action in ("edit","reset"):
+        result=_edit_one_setting(args)
     else:raise ValueError("unknown config operation")
     print(json.dumps(result,ensure_ascii=False,indent=None if args.compact else 2,
                      sort_keys=True,separators=(",",":") if args.compact else None))
