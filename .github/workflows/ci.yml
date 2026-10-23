@@ -13,6 +13,12 @@ jobs:
       - name: Install framework from default branch
         run: |
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
+          # This feature PR depends on core TGK PR #8. Validate both branches
+          # together until the core theme API is merged into TGK main.
+          if [ "${{ github.head_ref }}" = "feature/themes-and-scenario-gallery-20261023" ]; then
+            git -C /tmp/tgk fetch --depth=1 origin feature/semantic-themes-and-ui-labs-20261023
+            git -C /tmp/tgk checkout FETCH_HEAD
+          fi
           make -C /tmp/tgk build
           python -m pip install --no-deps /tmp/tgk
       - name: Install tools
