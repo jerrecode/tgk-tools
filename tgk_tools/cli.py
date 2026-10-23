@@ -257,6 +257,29 @@ def run_files(args):
     if selection is None:return 1
     print(selection);return 0
 
+_MAX_PROGRESS_JSON_BYTES = 1_048_576
+
+
+def _read_progress_state(path, max_bytes=_MAX_PROGRESS_JSON_BYTES):
+    """Read a bounded JSON progress snapshot, including during writer races.
+
+    The file may grow between stat and read: read limit+1 bytes directly
+    rather than trusting st_size or loading an arbitrarily large file.
+    """
+    import json
+    with Path(path).open('rb') as source:
+        payload = source.read(max_bytes + 1)
+    if len(payload) > max_bytes:
+        raise ValueError(f'Progress JSON exceeds {max_bytes} byte limit')
+    state = json.loads(payload.decode('utf-8'))
+    if not isinstance(state, dict):
+        raise ValueError('expected JSON object')
+    value = float(state.get('progress', 0))
+    if not math.isfinite(value):
+        raise ValueError('progress must be a finite number')
+    return max(0.0, min(100.0, value)), state.get('message', ''), bool(state.get('done'))
+
+
 def run_progress(args):
     import json
     import termuxgui as tg
@@ -279,15 +302,13 @@ def run_progress(args):
             if now>=next_read:
                 next_read=now+0.20
                 try:
-                    text=path.read_text(encoding='utf-8')
-                    if text!=last:
-                        last=text
-                        state=json.loads(text)
-                        if not isinstance(state,dict):raise ValueError('expected JSON object')
-                        value=max(0,min(100,float(state.get('progress',0))))
+                    value,message,completed=_read_progress_state(path)
+                    snapshot=(value,message,completed)
+                    if snapshot!=last:
+                        last=snapshot
                         bar.setprogress(round(value))
-                        info.settext(f"{value:.1f}%  {state.get('message','')}")
-                        if state.get('done') and done_since is None:done_since=now
+                        info.settext(f"{value:.1f}%  {message}")
+                        if completed and done_since is None:done_since=now
                 except FileNotFoundError:pass
                 except (ValueError,TypeError) as exc:
                     info.settext(f'Invalid progress file: {exc}')
