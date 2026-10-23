@@ -743,7 +743,12 @@ def main(argv=None):
     a.add_argument('--aspect-ratio',type=float)
     a.add_argument('--fit',choices=('contain','stretch'),default='contain')
     a.add_argument('--interactive',action='store_true')
-    a.add_argument('--touch-target-dp',type=int,default=48)
+    a.add_argument('--touch-target-dp',type=int,default=None,
+                   help='defaults to saved layout.touch_target_dp')
+    a.add_argument('--inset-top-dp',type=float,default=None,
+                   help='additional measured top inset; never guessed')
+    a.add_argument('--inset-bottom-dp',type=float,default=None,
+                   help='additional measured bottom inset; never guessed')
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_size_plan',args))
     a=sub.add_parser('style-catalog',parents=[theme_flags],
@@ -796,8 +801,11 @@ def main(argv=None):
     except (ValueError,OSError) as exc:
         print('tgk:',str(exc),file=sys.stderr)
         return 2
-    if args.command=='size-plan' and args.touch_target_dp<32:
-        p.error('--touch-target-dp must be at least 32')
+    if args.command=='size-plan':
+        if args.touch_target_dp is None:
+            args.touch_target_dp=settings['layout']['touch_target_dp']
+        if args.touch_target_dp<32:
+            p.error('--touch-target-dp must be at least 32')
     if args.command in ('adaptive-demo','layout-plan'):
         for key in ('columns','touch_target_dp','grid_unit_dp'):
             if getattr(args,key) is None:
