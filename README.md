@@ -254,7 +254,7 @@ streaming and format-specific processors; no broad protocol support or
 full media playback is claimed. Benchmarks and power use on Android remain
 to be measured.
 
-## Responsive Android UI and design-system CLI (TGK 0.5.0)
+## Responsive Android UI and design-system CLI (TGK 0.6.0)
 
 The new commands expose a **12-column Android window-dp grid**, extended
 component palettes, typography hierarchy, styled tables and configurable
@@ -344,7 +344,7 @@ reachable near the screen's bottom-right, even on short portrait phones.
 Use Android's Back action as an alternative. Per-object `--object-color`
 overrides continue to apply to Close/Cancel roles.
 
-## Layered icon builder (TGK 0.5.0)
+## Layered icon builder (TGK 0.6.0)
 
 The icon catalog now supports hierarchical SVG recipes with reusable base
 shapes and foreground modifiers such as text lines, code markers, pens,
@@ -384,6 +384,53 @@ user-provided strings are evaluated as code, and generated names are
 validated. A GitHub Actions workflow provides a complete downloadable
 `tgk-layered-icon-pack` asset artifact; device raster quality remains
 subject to font/rendering differences.
+
+## Persistent TGK defaults and installed preset catalogs (0.6.0)
+
+Installing TGK or TGK Tools now initializes four **per-user** JSON files
+under `~/.config/tgk/` (or `TGK_CONFIG_HOME` / `XDG_CONFIG_HOME`):
+
+```
+config.json
+presets/colors.json
+presets/typography.json
+presets/options.json
+```
+
+Presets include every built-in color scheme and typography style plus
+balanced/compact/accessible/performance/battery-saving/large-screen UI option
+profiles. Files are created only if absent; existing customized JSON survives
+reinstallation. Loading preferences never writes to the filesystem.
+
+```sh
+tgk config init --json
+tgk config paths --json
+tgk config list --json
+tgk config show --json
+tgk config validate --json
+
+tgk config set --palette ocean --typography terminal --options accessible
+tgk config set --orientation system --window-mode normal
+```
+
+Application and shell commands now inherit the selected default color and
+text preset unless overridden by `--theme`, `--text-style`,
+`--color ROLE=#RRGGBB`, other font flags or per-object overrides.
+Changing defaults does not mutate already running apps; start a new TGK App
+to apply the new selections, or call the existing live palette APIs.
+
+For larger changes edit the JSON directly. TGK validates names, structure,
+colors, font metadata, backend limits and layout parameters, and refuses
+invalid configuration instead of silently replacing it. In a long-lived
+Python process call `tgk.config.clear_cache()` after manually editing
+files; individual CLI invocations read the current settings at startup.
+
+Runtime settings include orientation, window mode, touch target, layout
+spacing, Clock callbacks per tick, idle sleep, bounded media I/O budgets,
+rendering target and icon export sizes. Hardware refresh-rate, physical
+panel resolution, color depth and window insets remain unknown unless
+Termux:GUI reports them; configuration cannot turn guessed metadata into
+hardware measurements.
 
 ## Shell commands
 
