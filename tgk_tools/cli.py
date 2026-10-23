@@ -37,10 +37,10 @@ def run_prompt(args):
         result=None
         def build(self):
             root=layout(args.title or 'Enter text',args)
-            self.entry=TextInput(text=args.default or '',multiline=args.multiline,password=args.password,height=85)
+            self.entry=_paint_object(TextInput(text=args.default or '',multiline=args.multiline,password=args.password,height=85),'input',args)
             root.add_widget(self.entry)
             bar=BoxLayout(orientation='horizontal',height=55)
-            yes=Button(text='OK');no=Button(text='Cancel')
+            yes=_paint_object(Button(text='OK'),'button',args);no=_paint_object(Button(text='Cancel'),'cancel',args)
             yes.bind(on_release=lambda *_: self.done(True))
             no.bind(on_release=lambda *_: self.done(False))
             bar.add_widget(no);bar.add_widget(yes);root.add_widget(bar)
@@ -60,7 +60,7 @@ def run_confirm(args):
             root.add_widget(Label(text=args.message,height=90))
             buttons=BoxLayout(height=60)
             for name,choice in [('No',False),('Yes',True)]:
-                b=Button(text=name);b.bind(on_release=lambda _,choice=choice:self.finish(choice))
+                b=_paint_object(Button(text=name),'button',args);b.bind(on_release=lambda _,choice=choice:self.finish(choice))
                 buttons.add_widget(b)
             root.add_widget(buttons);return root
         def finish(self,choice):self.accepted=choice;self.stop()
@@ -87,14 +87,14 @@ def run_choose(args):
             if args.multi:
                 self.checkboxes=[]
                 for option in args.options:
-                    ch=CheckBox(text=option,active=option in (args.selected or []))
+                    ch=_paint_object(CheckBox(text=option,active=option in (args.selected or [])),'button',args)
                     self.checkboxes.append(ch);listbox.add_widget(ch)
-                ok=Button(text='Confirm selection',height=58)
+                ok=_paint_object(Button(text='Confirm selection',height=58),'button',args)
                 ok.bind(on_release=lambda *_:self.finish([c.text for c in self.checkboxes if c.active]))
                 root.add_widget(ok)
             else:
                 for option in args.options:
-                    button=Button(text=option,height=58)
+                    button=_paint_object(Button(text=option,height=58),'button',args)
                     button.bind(on_release=lambda _,option=option:self.finish(option))
                     listbox.add_widget(button)
             scroll.add_widget(listbox);root.add_widget(scroll)
@@ -120,7 +120,7 @@ def run_show(args):
             scroll=ScrollView()
             scroll.add_widget(Label(text=text))
             root.add_widget(scroll)
-            close=Button(text='Close',height=55)
+            close=_paint_object(Button(text='Close',height=55),'cancel',args)
             close.bind(on_release=lambda *_:self.stop())
             root.add_widget(close);return root
     Viewer().run();return 0
@@ -134,14 +134,14 @@ def run_image(args):
         a=tg.Activity(c,intercept=True)
         from tgk.theme import get_theme,apply_activity_theme
         apply_activity_theme(a,get_theme())
-        root=tg.LinearLayout(a,vertical=True)
-        tg.TextView(a,path.name,root)
-        image=tg.ImageView(a,root)
+        root=_paint_object(tg.LinearLayout(a,vertical=True),'root',args)
+        _paint_object(tg.TextView(a,path.name,root),'heading',args)
+        image=_paint_object(tg.ImageView(a,root),'image',args)
         image.setimage(path.read_bytes())
         image.setwidth(tg.View.MATCH_PARENT)
         image.setheight(0)
         image.setlinearlayoutparams(1)
-        close=tg.Button(a,'Close',root);close.sendclickevent(True)
+        close=_paint_object(tg.Button(a,'Close',root),'cancel',args);close.sendclickevent(True)
         for e in c.events():
             if e.type=='back' or (e.type=='click' and e.value.get('id')==close):a.finish()
             if e.type=='destroy' and e.value.get('finishing'):break
@@ -161,7 +161,7 @@ def run_canvas(args):
         def rgb(role,opacity=None):
             channels=rgba_channels(palette[role])
             return rgba(*(channels if opacity is None else channels[:3]+(opacity,)))
-        view=tg.ImageView(activity)
+        view=_paint_object(tg.ImageView(activity),'canvas',args)
         view.setdimensions(tg.View.MATCH_PARENT,tg.View.MATCH_PARENT)
         view.sendtouchevent(True)
         buffer=tg.Buffer(connection,w,h)
@@ -271,12 +271,12 @@ def run_files(args):
         activity=tg.Activity(c,intercept=True)
         from tgk.theme import apply_activity_theme,get_theme
         apply_activity_theme(activity,get_theme())
-        root=tg.LinearLayout(activity,vertical=True)
-        heading=tg.TextView(activity,'Files',root)
+        root=_paint_object(tg.LinearLayout(activity,vertical=True),'root',args)
+        heading=_paint_object(tg.TextView(activity,'Files',root),'heading',args)
         heading.settextsize(19)
         scroll=tg.NestedScrollView(activity,root)
         scroll.setheight(0);scroll.setlinearlayoutparams(1)
-        control=tg.Button(activity,'Cancel',root);control.sendclickevent(True)
+        control=_paint_object(tg.Button(activity,'Cancel',root),'cancel',args);control.sendclickevent(True)
         controls=[(control,'cancel',None)]
         def render(directory):
             nonlocal controls
@@ -285,10 +285,10 @@ def run_files(args):
             scroll.clearchildren()
             listbox=tg.LinearLayout(activity,scroll,vertical=True)
             if directory.parent!=directory and (boundary is None or directory!=boundary):
-                b=tg.Button(activity,'[..] Parent directory',listbox);b.sendclickevent(True)
+                b=_paint_object(tg.Button(activity,'[..] Parent directory',listbox),'button',args);b.sendclickevent(True)
                 controls.append((b,'dir',directory.parent))
             if args.dirs_only:
-                b=tg.Button(activity,'[Select this directory]',listbox);b.sendclickevent(True)
+                b=_paint_object(tg.Button(activity,'[Select this directory]',listbox),'button',args);b.sendclickevent(True)
                 controls.append((b,'select',directory))
             try:
                 entries,truncated=_limited_file_entries(
@@ -299,7 +299,7 @@ def run_files(args):
                 tg.TextView(activity,f'Cannot read directory: {exc}',listbox)
                 return
             for path,is_dir in entries:
-                b=tg.Button(activity,('[DIR] ' if is_dir else '       ')+path.name,listbox)
+                b=_paint_object(tg.Button(activity,('[DIR] ' if is_dir else '       ')+path.name,listbox),'button',args)
                 b.sendclickevent(True)
                 controls.append((b,'dir' if is_dir else 'select',path))
             if truncated:
@@ -370,12 +370,12 @@ def run_progress(args):
         activity=tg.Activity(c,intercept=True)
         from tgk.theme import apply_activity_theme,get_theme
         apply_activity_theme(activity,get_theme())
-        root=tg.LinearLayout(activity,vertical=True)
-        title=tg.TextView(activity,args.title or 'Progress',root)
+        root=_paint_object(tg.LinearLayout(activity,vertical=True),'root',args)
+        title=_paint_object(tg.TextView(activity,args.title or 'Progress',root),'heading',args)
         title.settextsize(20)
-        info=tg.TextView(activity,'Awaiting progress data ...',root)
-        bar=tg.ProgressBar(activity,root)
-        close=tg.Button(activity,'Cancel',root);close.sendclickevent(True)
+        info=_paint_object(tg.TextView(activity,'Awaiting progress data ...',root),'heading',args)
+        bar=_paint_object(tg.ProgressBar(activity,root),'progress',args)
+        close=_paint_object(tg.Button(activity,'Cancel',root),'cancel',args);close.sendclickevent(True)
         outcome=1;next_read=0
         while True:
             now=time.monotonic()
