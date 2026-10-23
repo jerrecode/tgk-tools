@@ -38,5 +38,8 @@ if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk imp
   fi
 fi
 "$PYTHON" -m pip install --no-build-isolation --no-deps --editable .
-"$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder; _lib()' 
+# This is intentionally idempotent: never reset customized user presets.
+"$PYTHON" -m tgk.config init --json
+"$PYTHON" -m tgk.config validate --json
+"$PYTHON" -c 'import tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder; _lib()'
 printf '%s\n' 'Installed. Start with: tgk doctor --connect; tgk --help'
