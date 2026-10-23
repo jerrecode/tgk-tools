@@ -722,8 +722,8 @@ def main(argv=None):
     a.add_argument('--items',type=int,default=8)
     a.add_argument('--spans',action='append',default=[],
                    metavar='COMPACT,MEDIUM,EXPANDED')
-    a.add_argument('--touch-target-dp',type=int,default=48)
-    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.add_argument('--touch-target-dp',type=int,default=None)
+    a.add_argument('--grid-unit-dp',type=int,default=None)
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=lambda args:_run_mobile('run_layout_plan',args))
     a=sub.add_parser('style-catalog',parents=[theme_flags],
@@ -733,8 +733,8 @@ def main(argv=None):
     a=sub.add_parser('adaptive-demo',parents=[theme_flags],
                      help='launch window-aware 12-column grid and rich table lab')
     a.add_argument('--orientation',choices=('system','portrait','landscape'),default='system')
-    a.add_argument('--touch-target-dp',type=int,default=48)
-    a.add_argument('--grid-unit-dp',type=int,default=4)
+    a.add_argument('--touch-target-dp',type=int,default=None)
+    a.add_argument('--grid-unit-dp',type=int,default=None)
     a.set_defaults(run=lambda args:_run_mobile('run_adaptive_demo',args))
     a=sub.add_parser('benchmark',parents=[theme_flags],
                      help='bounded Python-only performance measurements (not Android FPS)')
@@ -761,7 +761,8 @@ def main(argv=None):
     if args.command=='files' and not 1<=args.max_items<=500:p.error('--max-items must be in 1..500')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
     if args.command in ('adaptive-demo','layout-plan'):
-        if args.touch_target_dp<32 or args.grid_unit_dp<1:
+        if ((args.touch_target_dp is not None and args.touch_target_dp<32)
+            or (args.grid_unit_dp is not None and args.grid_unit_dp<1)):
             p.error('touch target must be >=32dp and grid unit must be >=1dp')
         if args.command=='layout-plan' and not 0<=args.items<=2000:
             p.error('--items must be in 0..2000')
