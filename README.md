@@ -94,7 +94,7 @@ mv "$TMPDIR/task.json.tmp" "$TMPDIR/task.json"
 
 Exit codes: success 0, user cancellation/negative confirmation 1, argument/runtime error 2; progress timeout returns 124. The program prints structured return values to stdout; logs and diagnostics go to stderr where possible. GUI commands are blocking by design; run `progress` in background if the terminal must keep working.
 
-`tgk doctor --connect` and any GUI command require the Termux:GUI Android app/service; ordinary help and option parsing can run anywhere. The file picker enforces optional `--root` via resolved paths to reduce accidental traversal, but it is not a security sandbox. Large images/text have configurable limits.
+`tgk doctor --connect` and any GUI command require the Termux:GUI Android app/service; ordinary help and option parsing can run anywhere. The file picker enforces optional `--root` via resolved paths to reduce accidental traversal, but it is not a security sandbox. It now retains at most `--max-items` + 1 eligible entries for sorting instead of loading the entire directory into a Python list; directories are listed first with case-insensitive ordering. A full directory scan is still needed to determine the first entries, so this is a **memory improvement, not asynchronous browsing or pagination**. Large images/text have configurable limits.
 
 `show --max-chars N` reads at most N+1 Unicode characters before rejecting oversized file/stdin input; it does not read the entire input into memory first. Text/image limits must be positive. Timeouts and demo durations must be finite and non-negative (0 disables the limit). Invalid options fail before opening a GUI. Missing Termux:GUI Python bindings produce installation guidance on stderr and exit 2.
 
