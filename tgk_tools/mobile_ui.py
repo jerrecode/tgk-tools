@@ -36,6 +36,8 @@ def run_layout_plan(args):
             parts=raw.split(",")
             if len(parts)!=3:raise ValueError("--spans must be COMPACT,MEDIUM,EXPANDED")
             span=list(map(int,parts))
+            if any(not 1<=number<=12 for number in span):
+                raise ValueError("--spans must contain values from 1 to 12 in every size class")
             children.append(SimpleNamespace(span_compact=span[0],
                           span_medium=span[1],span_expanded=span[2]))
     else:
