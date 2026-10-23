@@ -36,7 +36,7 @@ class InstallerTests(unittest.TestCase):
         self.assertIn('"$PYTHON" -m tgk.install_assets',source)
         self.assertLess(source.index('"$PYTHON" -m tgk.config init'),
                         source.index('"$PYTHON" -m tgk.install_assets'))
-        self.assertIn("(0, 6, 9)",source)
+        self.assertIn("(0, 6, 10)",source)
 
 
 if __name__=="__main__":

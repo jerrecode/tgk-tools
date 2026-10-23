@@ -5,9 +5,10 @@ All successful commands emit exactly one JSON object on stdout.
 """
 from __future__ import annotations
 import json
+from dataclasses import replace
 from pathlib import Path
 
-from tgk.io_pipeline import Limits,copy_file,hash_file,download,ffprobe
+from tgk.io_pipeline import copy_file,hash_file,download,ffprobe
 
 
 def run_pipeline(args):
@@ -17,8 +18,9 @@ def run_pipeline(args):
                           "data":data},ensure_ascii=False,separators=(",",":")))
         return 0
 
-    limits=Limits(chunk_bytes=args.chunk_bytes,max_bytes=args.max_bytes,
-                  timeout=args.timeout)
+    from tgk.config import configured_io_limits
+    limits=replace(configured_io_limits(),chunk_bytes=args.chunk_bytes,
+                   max_bytes=args.max_bytes,timeout=args.timeout)
     if args.operation=="hash":
         result=hash_file(args.source,limits=limits)
     elif args.operation=="copy":

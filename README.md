@@ -134,20 +134,20 @@ Termux:GUI IPC, while other commands can be tested on Linux without a GUI.
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.9.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.10.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.9.tar.gz
-cd tgk_bundle_v0.6.9
+tar -xzf tgk_bundle_v0.6.10.tar.gz
+cd tgk_bundle_v0.6.10
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.9.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.10.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.9.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.10.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -519,6 +519,20 @@ Python source. Explicit `--theme`, `--theme-file`, `--color`,
 `--text-style` and font CLI parameters take precedence and never modify
 the saved settings.
 
+`tgk themes`, `tgk typography` and `tgk style-catalog` include installed
+custom presets and edits to built-in preset files. Named `--theme` and
+`--text-style` selections read these files too; `--color` and font flags still
+override them for that invocation. For example, save
+`{"theme":"ocean","colors":{"accent":"#123456"}}` as
+`palettes/custom_ocean.json`, then use `tgk themes --theme custom_ocean --json`.
+Save `{"style":"terminal","properties":{"size":23}}` as
+`text_styles/custom_mono.json`, then use
+`tgk typography --text-style custom_mono --json`.
+Catalog reads never initialize settings or overwrite files. They reject unsafe
+names, linked or nonregular preset files and malformed definitions; scans stop
+after 2,000 directory entries. `tgk config list --max-files N` adjusts its shared
+scan limit from 1 to 5,000 entries across the three preset directories.
+
 The same config controls responsive 12-column layout and minimum touch
 target sizes, orientation/window mode, maximum Clock jobs per tick, idle
 sleep time, bounded I/O defaults, icon output dimensions and default
@@ -527,6 +541,14 @@ sleep time, bounded I/O defaults, icon output dimensions and default
 `tgk icons-build --low/--mid/--high` values. Every setting has a
 schema/range check; invalid or corrupt configuration produces an explicit
 error rather than silently resetting to factory settings.
+
+Pipeline commands inherit saved `io.chunk_bytes`, `io.max_bytes` and
+`io.timeout` unless `--chunk-bytes`, `--max-bytes` or `--timeout` is supplied.
+The saved timeout also applies to `pipeline probe`. Overrides affect only the
+current command; saved settings remain unchanged. For example,
+`tgk config edit --field io.max_bytes=1048576` caps later transfers at 1 MiB,
+while `tgk pipeline hash archive.tar --max-bytes 16777216` permits up to 16 MiB
+for that invocation.
 
 For a different root, set `export TGK_CONFIG_HOME=/path/to/config`.
 A configuration edit takes effect when a new CLI process or GUI App starts.
@@ -605,7 +627,7 @@ tgk size-plan --connect --item-width-fraction .9 --json
 Existing `tgk layout-plan` and `tgk adaptive-demo` continue to honor
 configured physical grid columns and their 12-unit logical span mapping.
 This release makes installed TGK Tools package metadata, its Python version,
-and the downloadable `tgk_bundle_v0.6.9.tar.gz` agree.
+and the downloadable `tgk_bundle_v0.6.10.tar.gz` agree.
 
 Physical display FPS, panel resolution, and unknown status-bar insets are
 not guessed; Android hardware validation is still required.
@@ -643,7 +665,7 @@ participate in the lock unless those programs also acquire it.
 
 ## Install-time generated icon catalog (0.6.9)
 
-`sh ./install.sh` verifies TGK core >=0.6.9, creates any missing
+`sh ./install.sh` verifies TGK core >=0.6.10, creates any missing
 configuration, palette, text-style and option presets, audits saved presets,
 and initializes `~/.config/tgk/icons/` when absent. The new catalog includes
 a manifest and generated SVGs; the `ico/`, `low_res/`, `mid_res/` and

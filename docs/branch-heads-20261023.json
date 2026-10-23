@@ -1,0 +1,173 @@
+{
+  "baseline_main": "9893edd9cad37ca7b24739abec924460b51f4ec5",
+  "branches": [
+    {
+      "name": "dependabot/github_actions/actions/setup-python-6",
+      "sha": "e060a1636cb5bf9b680f6df55ccbe54cd44ce8f4"
+    },
+    {
+      "name": "feat/config-cli-install-20261023",
+      "sha": "20a906e5ba1bb6a0db558cb37a6433e9f32bed5a"
+    },
+    {
+      "name": "feat/doctor-capabilities-and-fresh-bundle-20261023",
+      "sha": "813b902c95d83d482c087daa93245ac7aadd4a61"
+    },
+    {
+      "name": "feature/adaptive-layout-style-cli-20261023",
+      "sha": "4327d0fd1c9f3a23138e64a0a0aed1f00e01e710"
+    },
+    {
+      "name": "feature/advanced-ui-typography-icons-20261023",
+      "sha": "91a88a9d5138b8585e9bc1a5912558faf864d757"
+    },
+    {
+      "name": "feature/bounded-pipeline-cli-20261023",
+      "sha": "d020b0c1ba041c90669918d04a53a1e850cb63eb"
+    },
+    {
+      "name": "feature/config-doctor-locked-installer-20261023",
+      "sha": "094c0a47fe07e7026cb22aa9c349e0fba7cf78b8"
+    },
+    {
+      "name": "feature/config-inspection-cli-20261023",
+      "sha": "8e2fbde5f286ab15e8f582b53fe0a3f314d4b88e"
+    },
+    {
+      "name": "feature/config-preset-cli-20261023",
+      "sha": "5447f7ff326fbcd3a5a4fbca0c022f4368d3f415"
+    },
+    {
+      "name": "feature/config-settings-cli-atomic-20261023-v2",
+      "sha": "4d114281ed7c868dd5169ba2edfe573309c3ad45"
+    },
+    {
+      "name": "feature/install-icon-catalog-bundle-20261023",
+      "sha": "c3217b8e781665c7e862fe44056590ec562834f5"
+    },
+    {
+      "name": "feature/performance-benchmark-cli-20261023",
+      "sha": "23f7cfa687e07942a4af43d2b35d44bd9eace6fc"
+    },
+    {
+      "name": "feature/persisted-responsive-columns-20261023",
+      "sha": "9c02d2efee36ec4f53b410f8750df1bbca7ad7e6"
+    },
+    {
+      "name": "feature/persistent-config-cli-20261023",
+      "sha": "9b2a1e1cffc1342272245504b3796bb2475ec069"
+    },
+    {
+      "name": "feature/size-plan-current-main-20261023",
+      "sha": "d4c696db7efb1f89829760a935e7095cb30e5e13"
+    },
+    {
+      "name": "feature/size-plan-current-tools-main-20261023",
+      "sha": "034f5b201065ce3a1684a6d38723b2cee3dd8c8a"
+    },
+    {
+      "name": "feature/sizing-preview-configured-grid-v065-20261023",
+      "sha": "4ec2df371ed03f4dab12a64121f1858b05d19ed7"
+    },
+    {
+      "name": "feature/themes-and-scenario-gallery-20261023",
+      "sha": "ae67223eb523a4c7250c4ae421da9f8ceacc8e68"
+    },
+    {
+      "name": "fix/bounded-shell-input",
+      "sha": "8666ca1611fce1a200de75f24d9d847959b59e76"
+    },
+    {
+      "name": "fix/bundle-canonical-symlink-20261023",
+      "sha": "c60d6b0cf0a2b6be50db0e3dd71e7f0d7f1b130f"
+    },
+    {
+      "name": "fix/canvas-image-space-touch",
+      "sha": "03c29cfac77f0a19a5efa21fc06085a0d07bfb79"
+    },
+    {
+      "name": "fix/compact-shell-actions-20261023",
+      "sha": "ebbbd15d6bcef82798d98f9ea9d09ae61c55efa7"
+    },
+    {
+      "name": "fix/config-cli-atomic-profiles-20261023",
+      "sha": "99fae869f0110a7e7dee36d44aca9b108e8c6022"
+    },
+    {
+      "name": "fix/config-cli-core-transactions-20261023",
+      "sha": "b25774ae90f9845d4c9be92cc6df5ece18aeea9b"
+    },
+    {
+      "name": "fix/config-default-selection-20261023",
+      "sha": "9bff0a3f176ca691099dd41e8df81b22e03bccf3"
+    },
+    {
+      "name": "fix/config-selector-effective-profiles-20261023",
+      "sha": "e6dc697966be3f1bf9db6bc90519732cc8a1c472"
+    },
+    {
+      "name": "fix/configured-presets-tools-061-20261023",
+      "sha": "cb5b8c149520c1ef04388519afbcda77df0a7e43"
+    },
+    {
+      "name": "fix/doctor-exhaustive-presets-and-safe-list-v068-20261023",
+      "sha": "6aae4d61928a03cb97a9f7ba5e4007d6417354f3"
+    },
+    {
+      "name": "fix/durable-default-install-20261023",
+      "sha": "d32ff33a7834ed7265567f954d0f7ff5a95b6593"
+    },
+    {
+      "name": "fix/file-picker-bounded-listing-20261023",
+      "sha": "2c37c99cb5f2790ec5e66c92ad1d4c73b2d2d92a"
+    },
+    {
+      "name": "fix/layout-plan-config-cli-20261023",
+      "sha": "b5993de5b6d1c62ec5475e268ff16aca6382fbca"
+    },
+    {
+      "name": "fix/offline-bundle-boundaries-20261023",
+      "sha": "8397e0810e921efeebfa6edb69995e13f73f7677"
+    },
+    {
+      "name": "fix/preset-audit-cli-installer-20261023",
+      "sha": "9550d0d4d177c1f5623a292dbfa5d6e9fac9425c"
+    },
+    {
+      "name": "fix/progress-bounded-snapshot-20261023",
+      "sha": "27db7d866a0f5478062312612c287926ff7bf6df"
+    },
+    {
+      "name": "fix/rebase-config-doctor-20261023",
+      "sha": "094c0a47fe07e7026cb22aa9c349e0fba7cf78b8"
+    },
+    {
+      "name": "fix/reconcile-preset-audit-20261023",
+      "sha": "8d911b04a88302ae3f56685380b8c4609533079f"
+    },
+    {
+      "name": "fix/reproducible-verified-bundles",
+      "sha": "19892bce485e74d936a8f1bc6276c7295f265f6d"
+    },
+    {
+      "name": "fix/saved-touch-insets-size-plan-20261023",
+      "sha": "091a2ebb906bf605ee5669542fd19b360a285e74"
+    },
+    {
+      "name": "fix/size-plan-persisted-touch-and-update-docs-20261023",
+      "sha": "f2b4aec3302dab6a8c87d473b8325656b6a8feff"
+    },
+    {
+      "name": "fix/size-plan-saved-touch-and-update-guide-20261023",
+      "sha": "52e1c0d5b8f92f46f1f405d620ec19ce2309e129"
+    },
+    {
+      "name": "fix/termux-icon-output-and-overlay-20261023",
+      "sha": "973f6b90051f866c627d0b09f315820b9a45d5cf"
+    },
+    {
+      "name": "fix/termux-ui-preserved-20261023",
+      "sha": "e206b7ba4ae495fd70a2d4a2b4e53dfc9509bd8b"
+    }
+  ]
+}
