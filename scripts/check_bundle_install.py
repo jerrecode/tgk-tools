@@ -27,7 +27,8 @@ def check(archive):
         env = os.environ.copy()
         env.pop('PYTHONPATH', None)
         env.update(PYTHON=str(python), PIP_NO_INDEX='1', PIP_NO_CACHE_DIR='1',
-                   PIP_DISABLE_PIP_VERSION_CHECK='1', TGK_DISABLE='1')
+                   PIP_DISABLE_PIP_VERSION_CHECK='1', TGK_DISABLE='1',
+                   TGK_CONFIG_HOME=str(base/'tgk-user-config'))
         source = base/'sources'
         with tarfile.open(archive) as bundle:
             bundle.extractall(source, filter='data')
@@ -42,7 +43,16 @@ def check(archive):
 import sys
 from pathlib import Path
 import tgk, tgk_tools
+import os, json
 from tgk.canvas import Canvas, rgba
+from tgk.icon_builder import recipe_names
+config = Path(os.environ["TGK_CONFIG_HOME"])
+catalog = config/"icons"
+manifest = json.loads((catalog/"manifest.json").read_text())
+assert len(manifest["icons"]) == len(recipe_names())
+assert len(list((catalog/"svg").glob("*.svg"))) == len(recipe_names())
+for directory in ("ico", "low_res", "mid_res", "high_res"):
+    assert (catalog/directory).is_dir()
 prefix = Path(sys.prefix)
 for module in (tgk, tgk_tools):
     assert Path(module.__file__).is_relative_to(prefix), module.__file__
