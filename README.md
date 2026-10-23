@@ -475,6 +475,42 @@ The existing `tgk config palette NAME`, `typography NAME`, and `options NAME`
 continue to inspect individual preset files. The configuration is per-user
 and does not adjust Android system-wide settings.
 
+## Consistent physical/logical grid and viewport sizing (0.6.5)
+
+`tgk layout-plan` now honors `layout.columns` from the persisted TGK
+configuration (or `--columns 1..32`), rather than always assuming 12
+physical columns. `--span-units` defaults to 12 so an existing 12-unit
+compact/medium/expanded design can map proportionally onto, for example,
+an eight-column native grid. The `tgk adaptive-demo --columns 8` flag
+applies the same per-App physical column policy in the Android GUI.
+
+```sh
+tgk layout-plan --width-dp 393 --height-dp 852 \
+  --columns 8 --span-units 12 --spans 6,6,6 --spans 6,6,6 --json
+tgk adaptive-demo --columns 8 --theme ocean
+```
+
+The new `tgk size-plan` command runs TGK's pure, finite
+`SizeSpec` planner with dimensions expressed in Android content-window dp:
+
+```sh
+tgk size-plan --width-dp 393 --height-dp 852 \
+  --item-width-fraction .5 --item-height-fraction .5 \
+  --max-height-fraction .2 --interactive --json
+tgk size-plan --width-dp 915 --height-dp 412 \
+  --item-width-dp 240 --item-height-dp 120 \
+  --aspect-ratio 1 --fit contain --json
+tgk size-plan --connect --item-width-fraction .9 --json
+```
+
+Additional flags control independent min/max dp and viewport fractions,
+horizontal/vertical margins, touch-target size, and aspect ratio.
+`--connect` reads actual Termux:GUI window configuration; simulation
+without it does not call Android or network services. Physical display
+FPS, panel resolution and system bar insets are **not inferred**.
+Both tools and core are versioned 0.6.5, and the verified offline bundle
+is consistently named `tgk_bundle_v0.6.5.tar.gz`.
+
 ## Shell commands
 
 ```sh
