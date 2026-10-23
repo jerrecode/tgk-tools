@@ -385,6 +385,45 @@ validated. A GitHub Actions workflow provides a complete downloadable
 `tgk-layered-icon-pack` asset artifact; device raster quality remains
 subject to font/rendering differences.
 
+## Persistent, editable configuration and preset catalogs (0.6.0)
+
+Installing TGK now creates a private XDG config directory (or
+`TGK_CONFIG_HOME`) containing `config.json`, `palettes/*.json`,
+`text_styles/*.json`, and `options/*.json`. Every available color
+scheme and typography preset is initialized with its defaults. Reinstalling
+creates missing files **without replacing edits**.
+
+```sh
+tgk config init                             # create missing presets only
+tgk config path                             # active config/preset directory
+tgk config show --compact                   # full validated runtime config as JSON
+tgk config validate                         # reject malformed settings
+tgk config palette ocean --compact          # inspect edited palette
+tgk config typography title_h2 --compact    # inspect edited font style
+tgk config options battery_saver --compact  # inspect named option profile
+```
+
+Set `ui.theme` and `ui.text_style` in `config.json` to select a
+default palette/style for every subsequent invocation. Change the associated
+preset JSON file to modify semantic colors and font properties without editing
+Python source. Explicit `--theme`, `--theme-file`, `--color`,
+`--text-style` and font CLI parameters take precedence and never modify
+the saved settings.
+
+The same config controls responsive 12-column layout and minimum touch
+target sizes, orientation/window mode, maximum Clock jobs per tick, idle
+sleep time, bounded I/O defaults, icon output dimensions and default
+`tgk files --max-items`, `tgk canvas-demo --fps`,
+`tgk progress --max-progress-json-bytes`, and
+`tgk icons-build --low/--mid/--high` values. Every setting has a
+schema/range check; invalid or corrupt configuration produces an explicit
+error rather than silently resetting to factory settings.
+
+For a different root, set `export TGK_CONFIG_HOME=/path/to/config`.
+A configuration edit takes effect when a new CLI process or GUI App starts.
+See the [TGK core README](https://github.com/jerrecode/tgk) for the
+complete JSON schema and precedence contract.
+
 ## Shell commands
 
 ```sh
