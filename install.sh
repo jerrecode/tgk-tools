@@ -29,7 +29,7 @@ command -v "$PYTHON" >/dev/null 2>&1 || {
   echo 'Missing Python build backend: python -m pip install setuptools' >&2
   exit 1
 }
-if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 6, 5)' >/dev/null 2>&1; then
+if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 6, 6)' >/dev/null 2>&1; then
   if [ -f ../install.sh ] && [ -f ../tgk/native/tgk_canvas.c ]; then
     printf '%s\n' 'Installing TGK from parent checkout as a self-contained copy...'
     (cd .. && PYTHON="$PYTHON" sh ./install.sh --copy)
