@@ -25,20 +25,20 @@ To install the framework directly without retaining the source checkout, run `sh
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.0.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.1.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.0.tar.gz
-cd tgk_bundle_v0.6.0
+tar -xzf tgk_bundle_v0.6.1.tar.gz
+cd tgk_bundle_v0.6.1
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.1.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.1.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -254,7 +254,7 @@ streaming and format-specific processors; no broad protocol support or
 full media playback is claimed. Benchmarks and power use on Android remain
 to be measured.
 
-## Responsive Android UI and design-system CLI (TGK 0.6.0)
+## Responsive Android UI and design-system CLI (TGK 0.6.1)
 
 The new commands expose a **12-column Android window-dp grid**, extended
 component palettes, typography hierarchy, styled tables and configurable
@@ -344,7 +344,7 @@ reachable near the screen's bottom-right, even on short portrait phones.
 Use Android's Back action as an alternative. Per-object `--object-color`
 overrides continue to apply to Close/Cancel roles.
 
-## Layered icon builder (TGK 0.6.0)
+## Layered icon builder (TGK 0.6.1)
 
 The icon catalog now supports hierarchical SVG recipes with reusable base
 shapes and foreground modifiers such as text lines, code markers, pens,
@@ -385,7 +385,7 @@ validated. A GitHub Actions workflow provides a complete downloadable
 `tgk-layered-icon-pack` asset artifact; device raster quality remains
 subject to font/rendering differences.
 
-## Persistent, editable configuration and preset catalogs (0.6.0)
+## Persistent, editable configuration and preset catalogs (0.6.1)
 
 Installing TGK now creates a private XDG config directory (or
 `TGK_CONFIG_HOME`) containing `config.json`, `palettes/*.json`,
@@ -424,7 +424,7 @@ A configuration edit takes effect when a new CLI process or GUI App starts.
 See the [TGK core README](https://github.com/jerrecode/tgk) for the
 complete JSON schema and precedence contract.
 
-## Persistently select defaults (TGK 0.6.0)
+## Persistently select defaults (TGK 0.6.1)
 
 TGK installs editable JSON configuration beneath `~/.config/tgk/` or the
 directory chosen through `TGK_CONFIG_HOME` / `XDG_CONFIG_HOME`.
@@ -443,11 +443,24 @@ tgk config set --options battery_saver
 ```
 
 The `set` command validates and atomically writes `config.json`. A selected
-options profile is applied as a **persistent snapshot** of its layout,
-scheduler, I/O or tool settings; it does not replace unrelated settings or
-modify editable preset files. Modify individual values in `config.json`
-afterward, or choose another profile. New applications inherit saved settings;
-explicit per-run `--theme`, `--text-style`, and App constructor options win.
+options profile is now saved as `ui.option_profile`, **not** as a copied
+snapshot of its numeric settings. Switching from `battery_saver` to
+`performance` therefore changes inherited worker counts and scheduling
+budgets instead of leaving the old snapshot pinned. Individually edited
+settings retain precedence over a profile; editable preset files are not
+overwritten. New apps inherit saved defaults, while explicit `--theme`,
+`--text-style`, and App constructor options still win.
+
+For individual numeric values, TGK 0.6.2 supports typed, validated writes:
+
+```sh
+python -m tgk.config set layout touch_target_dp 64
+python -m tgk.config get layout touch_target_dp
+python -m tgk.config set runtime clock_callbacks_per_tick 80
+```
+
+`tgk config set --options battery_saver` and other named presets require no
+hand-editing or manual JSON reformatting.
 
 The existing `tgk config palette NAME`, `typography NAME`, and `options NAME`
 continue to inspect individual preset files. The configuration is per-user
