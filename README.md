@@ -344,6 +344,47 @@ reachable near the screen's bottom-right, even on short portrait phones.
 Use Android's Back action as an alternative. Per-object `--object-color`
 overrides continue to apply to Close/Cancel roles.
 
+## Layered icon builder (TGK 0.5.0)
+
+The icon catalog now supports hierarchical SVG recipes with reusable base
+shapes and foreground modifiers such as text lines, code markers, pens,
+terminal prompt, archive zippers, locks, badges and automatically scaled
+filetype labels. This includes README, LICENSE, AGENTS, INSTALL, INFO, MAKE,
+REQ and uppercase labels for Python, JSONL, HTML, CSS, XML, YAML, TOML,
+TeX, C, H, JavaScript, Java and many more extensions.
+
+```sh
+# Backward-compatible general classification
+tgk icons --path README.md --json
+# Specific filename-layered SVG design
+tgk icons --path README.md --detailed --json
+tgk icons --svg filename_readme_md > readme.svg
+
+# Build and validate all known SVG combinations before publication
+tgk icons-build --output /tmp --overwrite
+# Limit the build to specific icon recipes
+tgk icons-build --output /tmp --overwrite \
+  --icon file_ext_jsonl --icon filename_agents_md --icon file_document
+
+# Build low/mid/high PNG and JPEG, plus ICO (CairoSVG + Pillow required)
+python -m pip install cairosvg pillow
+tgk icons-build --output /tmp --raster --overwrite
+```
+
+The output is `/tmp/icons/svg`, `/tmp/icons/ico`,
+`/tmp/icons/low_res`, `/tmp/icons/mid_res`,
+`/tmp/icons/high_res` and `/tmp/icons/manifest.json`. The default
+raster dimensions are 32, 96 and 256 pixels, and ICO contains several
+small resolutions. A pure SVG build leaves raster directories empty.
+
+The generator validates **every** recipe before writing a staging
+directory, then publishes the whole icon pack atomically after success.
+Existing output cannot be overwritten without an explicit flag. No
+user-provided strings are evaluated as code, and generated names are
+validated. A GitHub Actions workflow provides a complete downloadable
+`tgk-layered-icon-pack` asset artifact; device raster quality remains
+subject to font/rendering differences.
+
 ## Shell commands
 
 ```sh
