@@ -737,8 +737,10 @@ def main(argv=None):
     a=sub.add_parser('config',help='inspect, initialize and validate editable TGK settings')
     a.add_argument('action',nargs='?',default='show',
                    choices=('show','init','path','validate','palette','typography','options',
-                            'list','set'))
-    a.add_argument('name',nargs='?',help='preset name for palette/typography/options')
+                            'list','set','edit','reset'))
+    a.add_argument('name',nargs='?',help='preset name or section for edit/reset')
+    a.add_argument('key',nargs='?',help='setting key for edit/reset')
+    a.add_argument('value',nargs='?',help='new value for edit (JSON literal or string)')
     a.add_argument('--palette',help='persist this default palette')
     a.add_argument('--typography',help='persist this default typography preset')
     a.add_argument('--options',help='apply a named option profile as saved defaults')
@@ -755,8 +757,15 @@ def main(argv=None):
             p.error('tgk config set requires at least one default flag')
         if args.action!='set' and any(v is not None for v in changes):
             p.error('default selection flags require tgk config set')
-        if args.name is not None and args.action not in ('palette','typography','options'):
-            p.error('NAME is only used by palette/typography/options inspection')
+        if args.name is not None and args.action not in (
+                'palette','typography','options','edit','reset'):
+            p.error('NAME is only used by inspection or edit/reset')
+        if args.action not in ('edit','reset') and (args.key is not None or args.value is not None):
+            p.error('KEY and VALUE are only valid with config edit/reset')
+        if args.action=='edit' and (not args.name or not args.key or args.value is None):
+            p.error('config edit requires SECTION KEY VALUE')
+        if args.action=='reset' and (not args.name or not args.key or args.value is not None):
+            p.error('config reset requires SECTION KEY')
         try:return args.run(args)
         except (RuntimeError,ValueError,OSError) as exc:
             print('tgk:',str(exc),file=sys.stderr);return 2
