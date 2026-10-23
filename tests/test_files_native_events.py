@@ -28,7 +28,13 @@ class NativeButton:
         return self.id == getattr(value, 'id', value)
 
     def sendclickevent(self, enabled):
-        pass
+        self.click_enabled=enabled
+
+    def setwidth(self, width):
+        self.width=width
+
+    def setheight(self, height):
+        self.height=height
 
 
 class NativeView:
@@ -37,6 +43,8 @@ class NativeView:
         self.finished = False
 
     def setheight(self, *args): pass
+    def setwidth(self, *args): pass
+    def setmargin(self, *args): pass
     def setlinearlayoutparams(self, *args): pass
     def settextsize(self, *args): pass
     def clearchildren(self): pass
@@ -67,7 +75,7 @@ class Connection:
 
 
 tg = types.SimpleNamespace(Connection=Connection, Activity=NativeView,
-    LinearLayout=NativeView, NestedScrollView=NativeView,
+    LinearLayout=NativeView, FrameLayout=NativeView, NestedScrollView=NativeView,
     TextView=NativeView, Button=NativeButton)
 
 
