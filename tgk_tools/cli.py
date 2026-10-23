@@ -3,7 +3,8 @@ import argparse
 import math
 import sys
 from pathlib import Path
-from tgk.widgets import App, BoxLayout, ScrollView, Label, Button, TextInput, CheckBox
+from tgk.widgets import App, BoxLayout, ScrollView, Label, Button, TextInput, CheckBox, Widget
+from tgk_tools.mobile_actions import python_action_footer,native_action_footer
 
 def _paint_object(view,part,args):
     """Apply named per-object shell flags after creating a native/TGK widget.
@@ -54,11 +55,13 @@ def run_prompt(args):
             root=layout(args.title or 'Enter text',args)
             self.entry=_paint_object(TextInput(text=args.default or '',multiline=args.multiline,password=args.password,height=85),'input',args)
             root.add_widget(self.entry)
-            bar=BoxLayout(orientation='horizontal',height=55)
-            yes=_paint_object(Button(text='OK'),'button',args);no=_paint_object(Button(text='Cancel'),'cancel',args)
-            yes.bind(on_release=lambda *_: self.done(True))
-            no.bind(on_release=lambda *_: self.done(False))
-            bar.add_widget(no);bar.add_widget(yes);root.add_widget(bar)
+            footer,buttons=python_action_footer([
+                ('Cancel',lambda:self.done(False),'cancel'),
+                ('OK',lambda:self.done(True),'button')])
+            _paint_object(buttons[0],'cancel',args)
+            _paint_object(buttons[1],'button',args)
+            root.add_widget(Widget(weight=1))
+            root.add_widget(footer)
             return root
         def done(self,accepted):
             self.result=self.entry.text if accepted else None
@@ -73,11 +76,13 @@ def run_confirm(args):
         def build(self):
             root=layout(args.title or 'Confirm',args)
             root.add_widget(Label(text=args.message,height=90))
-            buttons=BoxLayout(height=60)
-            for name,choice in [('No',False),('Yes',True)]:
-                b=_paint_object(Button(text=name),'button',args);b.bind(on_release=lambda _,choice=choice:self.finish(choice))
-                buttons.add_widget(b)
-            root.add_widget(buttons);return root
+            footer,buttons=python_action_footer([
+                ('No',lambda:self.finish(False),'cancel'),
+                ('Yes',lambda:self.finish(True),'button')])
+            _paint_object(buttons[0],'cancel',args)
+            _paint_object(buttons[1],'button',args)
+            root.add_widget(Widget(weight=1))
+            root.add_widget(footer);return root
         def finish(self,choice):self.accepted=choice;self.stop()
     app=Confirm();app.run()
     if app.accepted:print('yes');return 0
@@ -97,22 +102,24 @@ def run_choose(args):
         result=None
         def build(self):
             root=layout(args.title or 'Choose an option',args)
-            scroll=ScrollView()
+            scroll=ScrollView(weight=1)
             listbox=BoxLayout(orientation='vertical')
             if args.multi:
                 self.checkboxes=[]
                 for option in args.options:
                     ch=_paint_object(CheckBox(text=option,active=option in (args.selected or [])),'button',args)
                     self.checkboxes.append(ch);listbox.add_widget(ch)
-                ok=_paint_object(Button(text='Confirm selection',height=58),'button',args)
-                ok.bind(on_release=lambda *_:self.finish([c.text for c in self.checkboxes if c.active]))
-                root.add_widget(ok)
+                footer,buttons=python_action_footer([
+                    ('Confirm selection',lambda:self.finish(
+                        [c.text for c in self.checkboxes if c.active]),'button')])
+                _paint_object(buttons[0],'button',args)
             else:
                 for option in args.options:
                     button=_paint_object(Button(text=option,height=58),'button',args)
                     button.bind(on_release=lambda _,option=option:self.finish(option))
                     listbox.add_widget(button)
             scroll.add_widget(listbox);root.add_widget(scroll)
+            if args.multi:root.add_widget(footer)
             return root
         def finish(self,selection):self.result=selection;self.stop()
     app=Choose();app.run()
@@ -132,12 +139,13 @@ def run_show(args):
     class Viewer(App):
         def build(self):
             root=layout(args.title or (args.file if args.file!='-' else 'Text viewer'),args)
-            scroll=ScrollView()
+            scroll=ScrollView(weight=1)
             scroll.add_widget(Label(text=text))
             root.add_widget(scroll)
-            close=_paint_object(Button(text='Close',height=55),'cancel',args)
-            close.bind(on_release=lambda *_:self.stop())
-            root.add_widget(close);return root
+            footer,buttons=python_action_footer([
+                ('Close',self.stop,'cancel')])
+            _paint_object(buttons[0],'cancel',args)
+            root.add_widget(footer);return root
     Viewer().run();return 0
 
 def run_image(args):
@@ -156,7 +164,8 @@ def run_image(args):
         image.setwidth(tg.View.MATCH_PARENT)
         image.setheight(0)
         image.setlinearlayoutparams(1)
-        close=_paint_object(tg.Button(a,'Close',root),'cancel',args);close.sendclickevent(True)
+        close=native_action_footer(tg,a,root,'Close',
+              paint=lambda v:_paint_object(v,'cancel',args))
         for e in c.events():
             if e.type=='back' or (e.type=='click' and e.value.get('id')==close):a.finish()
             if e.type=='destroy' and e.value.get('finishing'):break
@@ -291,7 +300,8 @@ def run_files(args):
         heading.settextsize(19)
         scroll=tg.NestedScrollView(activity,root)
         scroll.setheight(0);scroll.setlinearlayoutparams(1)
-        control=_paint_object(tg.Button(activity,'Cancel',root),'cancel',args);control.sendclickevent(True)
+        control=native_action_footer(tg,activity,root,'Cancel',
+              paint=lambda v:_paint_object(v,'cancel',args))
         controls=[(control,'cancel',None)]
         def render(directory):
             nonlocal controls
@@ -395,7 +405,10 @@ def run_progress(args):
         title.settextsize(20)
         info=_paint_object(tg.TextView(activity,'Awaiting progress data ...',root),'heading',args)
         bar=_paint_object(tg.ProgressBar(activity,root),'progress',args)
-        close=_paint_object(tg.Button(activity,'Cancel',root),'cancel',args);close.sendclickevent(True)
+        spacer=tg.FrameLayout(activity,root)
+        spacer.setheight(0);spacer.setlinearlayoutparams(1)
+        close=native_action_footer(tg,activity,root,'Cancel',
+              paint=lambda v:_paint_object(v,'cancel',args))
         outcome=1;next_read=0
         while True:
             now=time.monotonic()
