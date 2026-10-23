@@ -503,12 +503,12 @@ def run_themes(args):
 
 
 def run_demo(args):
-    from tgk.demos import Laboratory,Gallery,SCENARIOS
+    from tgk.demos import Laboratory,SCENARIOS
     from tgk.theme import get_theme
     if args.list:
         for name,description in SCENARIOS.items():print(name+"  "+description)
         return 0
-    if args.gallery:Gallery(theme=get_theme()).run()
+    if args.gallery:_require_gallery()(theme=get_theme()).run()
     else:Laboratory(scenario=args.scenario,theme=get_theme()).run()
     return 0
 
@@ -578,7 +578,17 @@ def _configure_theme(args,parser):
     except (ValueError,OSError) as exc:
         parser.error(str(exc))
 
+def _require_gallery():
+    try:
+        from tgk.demos import Gallery
+    except ImportError as exc:
+        raise RuntimeError('Single-Activity galleries require the current framework; '
+                           'update TGK using sh ./install.sh --copy in its checkout') from exc
+    return Gallery
+
+
 def _run_workflow_lazily(args):
+    _require_gallery()
     from tgk_tools.example_workflow import run_workflow
     return run_workflow(args)
 

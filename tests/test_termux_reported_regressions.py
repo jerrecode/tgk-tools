@@ -9,6 +9,7 @@ import sys
 import tempfile
 from unittest.mock import patch
 import unittest
+from types import SimpleNamespace
 
 from tgk.widgets import App,Button
 from tgk_tools.cli import main
@@ -19,6 +20,21 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 class ReportedTermuxRegressions(unittest.TestCase):
+    def test_legacy_core_can_still_list_demos_without_gallery_api(self):
+        legacy=SimpleNamespace(Laboratory=object,SCENARIOS={'legacy':'Existing demo'})
+        output=StringIO()
+        with patch.dict(sys.modules, {'tgk.demos':legacy}),redirect_stdout(output):
+            self.assertEqual(main(['demo','--list']),0)
+        self.assertIn('legacy  Existing demo',output.getvalue())
+
+    def test_missing_gallery_reports_update_guidance(self):
+        legacy=SimpleNamespace(Laboratory=object,SCENARIOS={'legacy':'Existing demo'})
+        output=StringIO(); errors=StringIO()
+        with patch.dict(sys.modules, {'tgk.demos':legacy}),redirect_stdout(output),redirect_stderr(errors):
+            self.assertEqual(main(['demo','--gallery']),2)
+        self.assertFalse(output.getvalue())
+        self.assertIn('update TGK',errors.getvalue())
+
     def _shell_example(self,name):
         with tempfile.TemporaryDirectory() as temp:
             target=Path(temp)
