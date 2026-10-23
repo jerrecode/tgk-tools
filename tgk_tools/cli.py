@@ -431,11 +431,21 @@ def run_doctor(args):
     import json
     import platform
     import importlib.util
+    import shutil
+    import tgk
+    import tgk_tools
     from tgk.canvas import _lib
+    from tgk.widgets import TermuxBackend
     result={'platform':platform.platform(),'python':sys.version.split()[0],
+            'tgk_version':tgk.__version__,
+            'tgk_tools_version':tgk_tools.__version__,
             'termux_detected':'com.termux' in str(Path(sys.executable)) or
              'com.termux' in str(__import__('os').environ.get('PREFIX','')),
-            'termuxgui_binding_present':importlib.util.find_spec('termuxgui') is not None}
+            'termuxgui_binding_present':importlib.util.find_spec('termuxgui') is not None,
+            'native_view_id_dispatch':hasattr(TermuxBackend(tg=object()),'_native_index'),
+            'bounded_io_available':importlib.util.find_spec('tgk.io_pipeline') is not None,
+            'ffmpeg_executable':shutil.which('ffmpeg'),
+            'ffprobe_executable':shutil.which('ffprobe')}
     try:
         _lib()
         result['c_renderer']='available'
