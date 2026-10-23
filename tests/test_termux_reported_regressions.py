@@ -109,9 +109,9 @@ class ReportedTermuxRegressions(unittest.TestCase):
         self.assertEqual(status,0)
         _,root=captured[-1]
         titlebar=root.children[0]
-        self.assertEqual(titlebar.height,48)
         close=next(item for item in titlebar.children if isinstance(item,Button))
         self.assertEqual((close.width,close.height),(48,48))
+        self.assertGreaterEqual(titlebar.height-2*titlebar.padding,close.height)
         panel=captured[-1][0].tabs
         self.assertFalse(hasattr(panel,'height'))
 

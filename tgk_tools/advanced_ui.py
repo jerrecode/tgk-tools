@@ -103,7 +103,7 @@ class AdvancedLab:
                     # system titlebar. Draw a small, native accessible title
                     # row within the content area instead.
                     from tgk import Widget
-                    titlebar=BoxLayout(orientation='horizontal',height=48,
+                    titlebar=BoxLayout(orientation='horizontal',height=56,
                                        padding=4)
                     titlebar.add_widget(Label(text='TGK • Dialog',weight=1,
                                               text_style='title_h4'))
