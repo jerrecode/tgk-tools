@@ -61,6 +61,37 @@ class ThemeCLITests(unittest.TestCase):
         self.assertIn('13_workbench',output)
         self.assertIn('01_basics',output)
 
+    def test_per_object_flags_override_only_named_native_views(self):
+        from types import SimpleNamespace
+        from tgk_tools.cli import _paint_object
+        result,_=self.run_with_output(['themes','--object-color',
+             'cancel.background=#FF0088','--object-color','heading.text=#102030'])
+        self.assertEqual(result,0)
+        args=SimpleNamespace(object_colors={
+            ('cancel','background'):'#FF0088FF',
+            ('heading','text'):'#102030FF',
+        })
+        class Native:
+            def __init__(self):self.bg=None;self.fg=None
+            def setbackgroundcolor(self,color):self.bg=color
+            def settextcolor(self,color):self.fg=color
+        cancel=Native();header=Native();unrelated=Native()
+        _paint_object(cancel,'cancel',args)
+        _paint_object(header,'heading',args)
+        _paint_object(unrelated,'button',args)
+        self.assertEqual(cancel.bg,tgui_color('#FF0088'))
+        self.assertEqual(header.fg,tgui_color('#102030'))
+        self.assertIsNone(unrelated.bg)
+        self.assertIsNone(unrelated.fg)
+
+    def test_invalid_object_role_fails_before_launch(self):
+        for flag in ('cancel.outline=#FFFFFF','unknown.text=#000000',
+                     'cancel.background=not-a-color','cancel'):
+            with self.subTest(flag=flag),self.assertRaises(SystemExit) as cm:
+                with contextlib.redirect_stderr(io.StringIO()):
+                    main(['prompt','--object-color',flag])
+            self.assertEqual(cm.exception.code,2)
+
     def test_theme_list_runs_without_termux_connection(self):
         code,stdout=self.run_with_output(['themes'])
         self.assertEqual(code,0)
