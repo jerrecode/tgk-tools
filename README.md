@@ -443,11 +443,24 @@ tgk config set --options battery_saver
 ```
 
 The `set` command validates and atomically writes `config.json`. A selected
-options profile is applied as a **persistent snapshot** of its layout,
-scheduler, I/O or tool settings; it does not replace unrelated settings or
-modify editable preset files. Modify individual values in `config.json`
-afterward, or choose another profile. New applications inherit saved settings;
-explicit per-run `--theme`, `--text-style`, and App constructor options win.
+options profile is now saved as `ui.option_profile`, **not** as a copied
+snapshot of its numeric settings. Switching from `battery_saver` to
+`performance` therefore changes inherited worker counts and scheduling
+budgets instead of leaving the old snapshot pinned. Individually edited
+settings retain precedence over a profile; editable preset files are not
+overwritten. New apps inherit saved defaults, while explicit `--theme`,
+`--text-style`, and App constructor options still win.
+
+For individual numeric values, TGK 0.6.2 supports typed, validated writes:
+
+```sh
+python -m tgk.config set layout touch_target_dp 64
+python -m tgk.config get layout touch_target_dp
+python -m tgk.config set runtime clock_callbacks_per_tick 80
+```
+
+`tgk config set --options battery_saver` and other named presets require no
+hand-editing or manual JSON reformatting.
 
 The existing `tgk config palette NAME`, `typography NAME`, and `options NAME`
 continue to inspect individual preset files. The configuration is per-user
