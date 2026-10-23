@@ -40,6 +40,70 @@ That bundle installs both packages as **non-editable copies**; the extracted sou
 
 Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.2.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
+## Unified colors and progressively complex GUI laboratories
+
+TGK Tools now uses TGK's centralized 17-role semantic theme system. Every GUI
+subcommand accepts theme flags **after the subcommand**; `midnight` is the default.
+
+```sh
+tgk themes                         # list all 12 palettes and semantic roles
+tgk themes --json                  # machine-readable colors and roles
+tgk prompt --theme paper --title 'Name'
+tgk choose alpha beta --theme ocean --color accent=#33AAFF
+tgk files --start "$HOME" --theme forest --color button=#1A6552
+tgk canvas-demo --theme cyberpunk --color accent=#FF34E7
+tgk demo --list                    # print the 13 supported interactive scenarios
+tgk demo --scenario 12_studio --theme lavender
+tgk demo --scenario 13_workbench --theme midnight --color accent=#18D0F9
+```
+
+JSON custom theme files use the following structure:
+
+```json
+{
+  "theme": "ocean",
+  "colors": {
+    "accent": "#18D0F9",
+    "background": "#082337",
+    "text": "#F1F9FF"
+  }
+}
+```
+
+Load them with `tgk demo --theme-file ./my_theme.json`. Use repeated
+`--color ROLE=#HEX` flags to override individual semantic roles; they take
+precedence over the theme file. `--theme PRESET`, if present, replaces the
+preset named inside `--theme-file`. Malformed color values or unknown roles
+are rejected before opening the Android GUI. For **per-widget overrides**,
+programmers can use TGK's `colors={"role":"#HEX"}` on a nested component or
+`background_color` / `text_color` on an individual object.
+
+The `tgk demo` launcher exposes the same **13 increasingly complex layout
+and interaction probes** implemented in the core TGK package. Its
+`12_studio` and `13_workbench` scenarios include preset selection, color
+scales, editable semantic roles, RGB sliders, nested layouts and complex
+controls. The shell `examples/` folder contains 10 progressively more
+complex workflows, from palette listing and simple dialogs to shell-driven
+native interfaces and the comprehensive workbench:
+
+```sh
+sh examples/01_theme_catalog.sh
+sh examples/03_multiselect.sh
+sh examples/05_gallery_scenarios.sh
+sh examples/07_theme_studio.sh
+sh examples/09_composed_workflow.sh
+sh examples/10_custom_theme_file.sh
+```
+
+Termux:GUI provides activity-wide theme colors before View creation and
+individual background/text color setters. TGK applies those to supported native
+controls, while the C canvas uses semantic colors directly. Native Android
+switch/checkbox/progress-track decorations can remain platform-styled.
+Hardware visual alignment, layout performance and full Kivy parity are **not**
+established by the offline test suite. This tools feature requires the
+corresponding TGK core theme API; the feature PR's CI intentionally tests
+against TGK's theme feature branch until it lands.
+
 ## Shell commands
 
 ```sh
