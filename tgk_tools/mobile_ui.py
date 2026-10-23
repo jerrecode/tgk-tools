@@ -81,6 +81,10 @@ def run_size_plan(args):
     """Pure viewport size preview; never claims physical screen resolution."""
     from dataclasses import asdict
     metrics=_metrics_for(args)
+    if args.inset_top_dp is not None or args.inset_bottom_dp is not None:
+        metrics=replace(metrics,
+                        inset_top_dp=args.inset_top_dp,
+                        inset_bottom_dp=args.inset_bottom_dp)
     spec=SizeSpec(
         width_dp=args.item_width_dp,height_dp=args.item_height_dp,
         width_fraction=args.item_width_fraction,
@@ -96,7 +100,10 @@ def run_size_plan(args):
                       interactive=args.interactive)
     payload={"source":"termuxgui" if args.connect else "simulated",
              "screen":metrics.to_dict(),"spec":asdict(spec),
-             "resolved":asdict(size),"physical_display_metrics_verified":False}
+             "resolved":asdict(size),
+             "touch_target_dp_effective":args.touch_target_dp,
+             "interactive":bool(args.interactive),
+             "physical_display_metrics_verified":False}
     if args.json:print(json.dumps(payload,separators=(",",":"),allow_nan=False))
     else:
         print("Window (dp): %gx%g • %s" % (
