@@ -551,8 +551,22 @@ def _run_pipeline_lazily(args):
     return run_pipeline(args)
 
 
+def _run_icons_lazily(args):
+    from tgk_tools.advanced_ui import run_icons
+    return run_icons(args)
+
+
+def _run_typography_lazily(args):
+    from tgk_tools.advanced_ui import run_typography
+    return run_typography(args)
+
+
+def _run_lab_lazily(args):
+    from tgk_tools.advanced_ui import run_lab
+    return run_lab(args)
+
+
 def main(argv=None):
-    from tgk_tools.advanced_ui import run_icons,run_typography,run_lab
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
     theme_flags=argparse.ArgumentParser(add_help=False)
@@ -598,15 +612,15 @@ def main(argv=None):
     a.add_argument('--svg')
     a.add_argument('--svg-size',type=int,default=24)
     a.add_argument('--svg-color',default='#FFFFFF')
-    a.set_defaults(run=run_icons)
+    a.set_defaults(run=_run_icons_lazily)
     a=sub.add_parser('typography',parents=[theme_flags],help='list or preview text presets')
     a.add_argument('--json',action='store_true')
     a.add_argument('--preview',action='store_true')
-    a.set_defaults(run=run_typography)
+    a.set_defaults(run=_run_typography_lazily)
     a=sub.add_parser('ui-lab',parents=[theme_flags],help='tabs, popup, icons, rich text and canvas')
     a.add_argument('--mode',choices=('normal','dialog','overlay'),default='normal')
     a.add_argument('--start-page',choices=('home','icons','text','canvas','screens'),default='home')
-    a.set_defaults(run=run_lab)
+    a.set_defaults(run=_run_lab_lazily)
     a=sub.add_parser('pipeline',parents=[theme_flags],
                      help='bounded local copy, SHA-256, HTTPS download and ffprobe JSON')
     a.add_argument('operation',choices=('hash','copy','download','probe'))
