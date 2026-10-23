@@ -25,20 +25,20 @@ To install the framework directly without retaining the source checkout, run `sh
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.5.0.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.0.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.5.0.tar.gz
-cd tgk_bundle_v0.5.0
+tar -xzf tgk_bundle_v0.6.0.tar.gz
+cd tgk_bundle_v0.6.0
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.5.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.0.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.5.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.0.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -254,7 +254,7 @@ streaming and format-specific processors; no broad protocol support or
 full media playback is claimed. Benchmarks and power use on Android remain
 to be measured.
 
-## Responsive Android UI and design-system CLI (TGK 0.5.0)
+## Responsive Android UI and design-system CLI (TGK 0.6.0)
 
 The new commands expose a **12-column Android window-dp grid**, extended
 component palettes, typography hierarchy, styled tables and configurable
@@ -344,7 +344,7 @@ reachable near the screen's bottom-right, even on short portrait phones.
 Use Android's Back action as an alternative. Per-object `--object-color`
 overrides continue to apply to Close/Cancel roles.
 
-## Layered icon builder (TGK 0.5.0)
+## Layered icon builder (TGK 0.6.0)
 
 The icon catalog now supports hierarchical SVG recipes with reusable base
 shapes and foreground modifiers such as text lines, code markers, pens,
@@ -384,6 +384,45 @@ user-provided strings are evaluated as code, and generated names are
 validated. A GitHub Actions workflow provides a complete downloadable
 `tgk-layered-icon-pack` asset artifact; device raster quality remains
 subject to font/rendering differences.
+
+## Persistent, editable configuration and preset catalogs (0.6.0)
+
+Installing TGK now creates a private XDG config directory (or
+`TGK_CONFIG_HOME`) containing `config.json`, `palettes/*.json`,
+`text_styles/*.json`, and `options/*.json`. Every available color
+scheme and typography preset is initialized with its defaults. Reinstalling
+creates missing files **without replacing edits**.
+
+```sh
+tgk config init                             # create missing presets only
+tgk config path                             # active config/preset directory
+tgk config show --compact                   # full validated runtime config as JSON
+tgk config validate                         # reject malformed settings
+tgk config palette ocean --compact          # inspect edited palette
+tgk config typography title_h2 --compact    # inspect edited font style
+tgk config options battery_saver --compact  # inspect named option profile
+```
+
+Set `ui.theme` and `ui.text_style` in `config.json` to select a
+default palette/style for every subsequent invocation. Change the associated
+preset JSON file to modify semantic colors and font properties without editing
+Python source. Explicit `--theme`, `--theme-file`, `--color`,
+`--text-style` and font CLI parameters take precedence and never modify
+the saved settings.
+
+The same config controls responsive 12-column layout and minimum touch
+target sizes, orientation/window mode, maximum Clock jobs per tick, idle
+sleep time, bounded I/O defaults, icon output dimensions and default
+`tgk files --max-items`, `tgk canvas-demo --fps`,
+`tgk progress --max-progress-json-bytes`, and
+`tgk icons-build --low/--mid/--high` values. Every setting has a
+schema/range check; invalid or corrupt configuration produces an explicit
+error rather than silently resetting to factory settings.
+
+For a different root, set `export TGK_CONFIG_HOME=/path/to/config`.
+A configuration edit takes effect when a new CLI process or GUI App starts.
+See the [TGK core README](https://github.com/jerrecode/tgk) for the
+complete JSON schema and precedence contract.
 
 ## Shell commands
 
