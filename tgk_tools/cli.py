@@ -516,7 +516,7 @@ def _configure_theme(args,parser):
             if not role.strip():raise ValueError("--color requires a role")
             overrides[role.strip()]=value.strip()
         set_theme(chosen,**overrides)
-        from tgk.typography import resolve_text_style,set_text_style,PRESETS as FONT_PRESETS
+        from tgk.typography import resolve_text_style,set_text_style,get_text_style
         from tgk.theme import normalize_color
         style_options={}
         for field,arg_name in (("family","font_family"),("size","font_size"),
@@ -526,7 +526,8 @@ def _configure_theme(args,parser):
             if value is not None:style_options[field]=value
         for flag in ("italic","underline","strike"):
             if getattr(args,flag):style_options[flag]=True
-        set_text_style(args.text_style,**style_options)
+        set_text_style(args.text_style if args.text_style is not None
+                       else get_text_style(),**style_options)
         args.object_fonts={}
         allowed={"root","heading","input","button","cancel","image",
                  "canvas","progress","*"}
@@ -612,6 +613,16 @@ def _run_icons_build(args):
     return 0
 
 
+def _run_config(args):
+    from tgk.config import main as config_main
+    argv=[args.action]
+    if args.json:argv.append('--json')
+    try:return config_main(argv)
+    except (ValueError,OSError) as exc:
+        print('tgk config: '+str(exc),file=sys.stderr)
+        return 2
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
@@ -623,7 +634,8 @@ def main(argv=None):
     theme_flags.add_argument('--object-color',action='append',default=[],
                              metavar='TARGET.PROPERTY=#HEX',
                              help='Override native root/heading/input/button/cancel/... .text or .background')
-    theme_flags.add_argument('--text-style',default='body',help='Typography preset')
+    theme_flags.add_argument('--text-style',default=None,
+                             help='Typography preset (defaults to configured selection)')
     theme_flags.add_argument('--font-family',choices=('sans','serif','mono'))
     theme_flags.add_argument('--font-size',type=int)
     theme_flags.add_argument('--font-weight',type=int)
@@ -728,8 +740,13 @@ def main(argv=None):
     a.add_argument('--samples',type=int,default=3)
     a.add_argument('--json',action='store_true')
     a.set_defaults(run=_run_benchmark_lazily)
+    a=sub.add_parser('config',help='inspect/initialize persistent TGK presets and settings')
+    a.add_argument('action',nargs='?',default='show',
+                   choices=('show','init','validate','paths'))
+    a.add_argument('--json',action='store_true')
+    a.set_defaults(run=_run_config)
     args=p.parse_args(argv)
-    _configure_theme(args,p)
+    if args.command!='config':_configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
     if args.command=='image' and args.max_bytes<=0:p.error('--max-bytes must be positive')
     for name in ('timeout','seconds'):
