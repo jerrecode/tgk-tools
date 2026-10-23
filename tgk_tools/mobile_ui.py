@@ -53,7 +53,7 @@ def run_layout_plan(args):
     planner=LayoutScale(columns=cols,grid_unit_dp=args.grid_unit_dp,
                         touch_target_dp=args.touch_target_dp)
     positions=arrange_spans(children,columns=cols,metrics=metrics,
-                            logical_columns=units)
+                            span_units=units)
     result={"source":"termuxgui" if args.connect else "simulated",
             "screen":metrics.to_dict(),
             "grid":{"columns":cols,"logical_columns":units,
