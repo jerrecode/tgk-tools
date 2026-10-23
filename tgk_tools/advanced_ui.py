@@ -9,7 +9,8 @@ from tgk.theme import get_theme
 
 def run_icons(args):
     if args.path:
-        name=icon_for_path(args.path,is_dir=True if args.directory else None)
+        name=icon_for_path(args.path,is_dir=True if args.directory else None,
+                           detailed=getattr(args,"detailed",False))
         if args.json:print(json.dumps({"path":args.path,"icon":name,"glyph":glyph(name)},
                                      ensure_ascii=False))
         else:print(name+" "+glyph(name))
