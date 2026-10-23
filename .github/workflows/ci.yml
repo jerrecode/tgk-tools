@@ -16,7 +16,7 @@ jobs:
           # Temporary integration gate until core TGK PR #22 merges.
           if [ "${{ github.head_ref }}" = "fix/config-cli-atomic-profiles-20261023" ] || \
              [ "${{ github.ref_name }}" = "fix/config-cli-atomic-profiles-20261023" ]; then
-            git -C /tmp/tgk fetch --depth=1 origin fix/config-atomic-updates-unified-defaults-20261023
+            git -C /tmp/tgk fetch --depth=1 origin feat/config-multipatch-raster-default-20261023
             git -C /tmp/tgk checkout FETCH_HEAD
           fi
           make -C /tmp/tgk build
@@ -36,12 +36,12 @@ jobs:
           tgk --help
           tgk doctor --json
       - name: Build offline source installer archive
-        run: python scripts/build_bundle.py --tgk-source /tmp/tgk --out tgk_bundle_v0.6.1.tar.gz
+        run: python scripts/build_bundle.py --tgk-source /tmp/tgk --out tgk_bundle_v0.6.2.tar.gz
       - name: Verify offline archive installation after deleting extracted sources
-        run: python scripts/check_bundle_install.py tgk_bundle_v0.6.1.tar.gz
+        run: python scripts/check_bundle_install.py tgk_bundle_v0.6.2.tar.gz
       - name: Upload downloadable source installer
         uses: actions/upload-artifact@v4
         with:
           name: tgk-offline-installer
-          path: tgk_bundle_v0.6.1.tar.gz
+          path: tgk_bundle_v0.6.2.tar.gz
           if-no-files-found: error
