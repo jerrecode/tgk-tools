@@ -197,6 +197,24 @@ The advanced TGK core APIs have been merged into `jerrecode/tgk/main`.
 This tools feature branch now tests against the installed default TGK core
 branch; no temporary checkout of an unmerged core branch is required.
 
+## Environment and resource capability diagnostics
+
+`tgk doctor --json` now includes both installed package versions,
+`native_view_id_dispatch` (O(1) scalar-ID event routing),
+`bounded_io_available`, optional `ffmpeg_executable` and
+`ffprobe_executable` paths, and the existing native renderer and Android
+connection diagnostics. Running without `--connect` does not open an Android
+Activity or require Termux:GUI. On Android:
+
+```sh
+tgk doctor --json
+tgk doctor --connect
+pkg install ffmpeg  # only needed for optional tgk pipeline probe and FFmpeg tools
+```
+
+These capability flags show **software availability**, not actual frame rates
+or the results of a hardware validation. Run GUI tests on your device.
+
 ## Bounded media and data processing — non-GUI pipeline commands
 
 The `tgk pipeline` subcommand is a composable, JSON-output interface to
