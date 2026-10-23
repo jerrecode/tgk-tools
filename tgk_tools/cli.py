@@ -274,10 +274,23 @@ def _read_progress_state(path, max_bytes=_MAX_PROGRESS_JSON_BYTES):
     state = json.loads(payload.decode('utf-8'))
     if not isinstance(state, dict):
         raise ValueError('expected JSON object')
-    value = float(state.get('progress', 0))
+    raw_value = state.get('progress', 0)
+    if isinstance(raw_value, bool):
+        raise ValueError('progress must be a finite number')
+    try:
+        value = float(raw_value)
+    except (ValueError, TypeError, OverflowError) as exc:
+        # Even well-formed JSON numbers (e.g. 400 digits) may overflow float.
+        raise ValueError('progress must be a finite number') from exc
     if not math.isfinite(value):
         raise ValueError('progress must be a finite number')
-    return max(0.0, min(100.0, value)), state.get('message', ''), bool(state.get('done'))
+    message = state.get('message', '')
+    if not isinstance(message, str):
+        raise ValueError('message must be a string')
+    completed = state.get('done', False)
+    if type(completed) is not bool:
+        raise ValueError('done must be a JSON boolean')
+    return max(0.0, min(100.0, value)), message, completed
 
 
 def run_progress(args):
@@ -308,11 +321,17 @@ def run_progress(args):
                         last=snapshot
                         bar.setprogress(round(value))
                         info.settext(f"{value:.1f}%  {message}")
-                        if completed and done_since is None:done_since=now
-                except FileNotFoundError:pass
+                    if completed:
+                        if done_since is None:done_since=now
+                    else:
+                        done_since=None  # a restarted job must not auto-close
+                except FileNotFoundError:
+                    done_since=None
                 except (ValueError,TypeError) as exc:
+                    done_since=None
                     info.settext(f'Invalid progress file: {exc}')
-            if args.auto_close and done_since is not None and now-done_since>0.8:
+            if (outcome!=124 and args.auto_close and done_since is not None
+                    and now-done_since>0.8):
                 outcome=0;activity.finish()
             event=c.checkevent()
             if event:
