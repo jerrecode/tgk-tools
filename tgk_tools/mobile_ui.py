@@ -18,14 +18,22 @@ def _metrics_for(args):
         with tg.Connection() as c:
             activity=tg.Activity(c,intercept=True)
             try:
-                return ScreenMetrics.from_configuration(activity.getconfiguration())
+                metrics=ScreenMetrics.from_configuration(activity.getconfiguration())
             finally:
                 activity.finish()
-    if args.width_dp is None or args.height_dp is None:
-        raise ValueError("pass both --width-dp and --height-dp, or use --connect on Android")
-    return ScreenMetrics(args.width_dp,args.height_dp,
-                         density=args.density,font_scale=args.font_scale,
-                         orientation=("landscape" if args.width_dp>args.height_dp else "portrait"))
+    else:
+        if args.width_dp is None or args.height_dp is None:
+            raise ValueError("pass both --width-dp and --height-dp, or use --connect on Android")
+        metrics=ScreenMetrics(args.width_dp,args.height_dp,
+                             density=args.density,font_scale=args.font_scale,
+                             orientation=("landscape" if args.width_dp>args.height_dp else "portrait"))
+    # Insets are explicitly measured/provided additions to the already
+    # decor-safe Activity content viewport. Never silently guess values.
+    top=getattr(args,"inset_top_dp",None)
+    bottom=getattr(args,"inset_bottom_dp",None)
+    if top is not None or bottom is not None:
+        metrics=replace(metrics,inset_top_dp=top,inset_bottom_dp=bottom)
+    return metrics
 
 
 def run_layout_plan(args):
