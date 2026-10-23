@@ -546,6 +546,7 @@ def _configure_theme(args,parser):
 
 def main(argv=None):
     from tgk_tools.advanced_ui import run_icons,run_typography,run_lab
+    from tgk_tools.pipeline_cli import run_pipeline
     p=argparse.ArgumentParser(prog='tgk',description='Android GUI tools for Termux; stdout emits only selections/results')
     sub=p.add_subparsers(dest='command',required=True)
     theme_flags=argparse.ArgumentParser(add_help=False)
@@ -600,6 +601,20 @@ def main(argv=None):
     a.add_argument('--mode',choices=('normal','dialog','overlay'),default='normal')
     a.add_argument('--start-page',choices=('home','icons','text','canvas','screens'),default='home')
     a.set_defaults(run=run_lab)
+    a=sub.add_parser('pipeline',parents=[theme_flags],
+                     help='bounded local copy, SHA-256, HTTPS download and ffprobe JSON')
+    a.add_argument('operation',choices=('hash','copy','download','probe'))
+    a.add_argument('source',help='local path (or HTTPS URL for download)')
+    a.add_argument('target',nargs='?',help='destination for copy or download')
+    a.add_argument('--chunk-bytes',type=int,default=65536)
+    a.add_argument('--max-bytes',type=int,default=268435456)
+    a.add_argument('--timeout',type=float,default=30)
+    a.add_argument('--max-metadata-bytes',type=int,default=8388608)
+    a.add_argument('--overwrite',action='store_true')
+    a.add_argument('--allow-http',action='store_true',help='allow insecure HTTP explicitly')
+    a.add_argument('--allow-host',action='append',default=[],
+                   help='optional HTTPS hostname allowlist (repeatable)')
+    a.set_defaults(run=run_pipeline)
     args=p.parse_args(argv)
     _configure_theme(args,p)
     if args.command=='show' and args.max_chars<=0:p.error('--max-chars must be positive')
@@ -612,6 +627,14 @@ def main(argv=None):
         p.error('canvas dimensions must be positive and at most 4194304 pixels')
     if args.command=='files' and not 1<=args.max_items<=500:p.error('--max-items must be in 1..500')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
+    if args.command=='pipeline':
+        if args.operation in ('copy','download') and not args.target:
+            p.error('pipeline '+args.operation+' requires TARGET')
+        if args.operation in ('hash','probe') and args.target:
+            p.error('pipeline '+args.operation+' does not accept TARGET')
+        if args.timeout<=0:p.error('--timeout must be positive')
+        if args.max_bytes<=0 or args.chunk_bytes<=0 or args.max_metadata_bytes<=0:
+            p.error('pipeline size limits must be positive')
     if args.command=='icons' and args.svg and (args.path or args.category):
         p.error('Use --svg separately from --path or --category')
     if args.command=='icons' and args.path and args.category:
