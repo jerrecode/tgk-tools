@@ -6,7 +6,9 @@ Termux device rather than shipping incompatible Linux x86_64 binaries.
 """
 import argparse
 import gzip
+import os
 import shutil
+import stat
 import tarfile
 import tempfile
 from pathlib import Path
@@ -76,23 +78,51 @@ def build(tgk: Path, tools: Path, out: Path) -> Path:
         raise ValueError(f'Not a TGK framework checkout: {tgk}')
     if not (tools / 'tgk_tools/cli.py').is_file():
         raise ValueError(f'Not a TGK tools checkout: {tools}')
-    out = out.resolve()
+    out = out.absolute()
+    if out.is_symlink():
+        raise ValueError('Refuse symlink archive output')
+    # Canonicalize only the parent: retain the final-component symlink check
+    # while recognizing '..' and directory aliases when excluding old output.
+    out = out.parent.resolve()/out.name
     out.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='tgk-bundle-') as temp:
         root = Path(temp) / BUNDLE_NAME
         root.mkdir()
         def ignore(directory, names):
-            return _ignore(directory, names) + [
-                name for name in names if (Path(directory)/name).resolve() == out]
+            skipped = set(_ignore(directory, names))
+            for name in names:
+                path = Path(directory)/name
+                if path.absolute() == out:
+                    skipped.add(name)
+                if name in skipped:
+                    continue
+                mode = path.lstat().st_mode
+                if not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
+                    raise ValueError(f'Only regular source files/directories allowed (no symlinks): {path}')
+            return skipped
         shutil.copytree(tgk, root / 'tgk', ignore=ignore)
         shutil.copytree(tools, root / 'tgk-tools', ignore=ignore)
         script = root / 'install.sh'
         script.write_text(INSTALLER, encoding='utf-8')
         script.chmod(0o755)
         (root / 'README.md').write_text(README, encoding='utf-8')
-        with out.open('wb') as target, gzip.GzipFile(filename='', mode='wb', fileobj=target, mtime=0) as compressed:
-            with tarfile.open(fileobj=compressed, mode='w') as archive:
-                archive.add(root, arcname=BUNDLE_NAME, filter=_archive_metadata)
+        # A failed compression/write must leave an existing good bundle intact.
+        # Stage beside the destination so publication stays on one filesystem.
+        staged = None
+        try:
+            with tempfile.NamedTemporaryFile(prefix='.tgk-bundle-', suffix='.tmp',
+                                             dir=out.parent, delete=False) as target:
+                staged = Path(target.name)
+                with gzip.GzipFile(filename='', mode='wb', fileobj=target, mtime=0) as compressed:
+                    with tarfile.open(fileobj=compressed, mode='w') as archive:
+                        archive.add(root, arcname=BUNDLE_NAME, filter=_archive_metadata)
+                target.flush()
+                os.fsync(target.fileno())
+            staged.chmod(0o644)
+            os.replace(staged, out)
+        finally:
+            if staged is not None:
+                staged.unlink(missing_ok=True)
     return out
 
 
