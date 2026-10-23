@@ -193,10 +193,9 @@ sh examples/14_multiview_lab.sh
 sh examples/18_custom_ui_style.sh
 ```
 
-This tools feature PR depends on the matching TGK core advanced UI PR.
-The feature branch tests with its core peer until the core feature is
-merged; the temporary CI checkout override must then be removed and tested
-against the merged core `main`.
+The advanced TGK core APIs have been merged into `jerrecode/tgk/main`.
+This tools feature branch now tests against the installed default TGK core
+branch; no temporary checkout of an unmerged core branch is required.
 
 ## Shell commands
 
