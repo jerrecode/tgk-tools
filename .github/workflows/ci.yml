@@ -15,7 +15,8 @@ jobs:
           git clone --depth=1 https://github.com/jerrecode/tgk.git /tmp/tgk
           # Test the optional I/O API against the matching core feature branch.
           # Remove this temporary conditional once tgk PR #10 is merged.
-          if [ "${{ github.head_ref }}" = "feature/bounded-pipeline-cli-20261023" ]; then
+          if [ "${{ github.head_ref }}" = "feature/bounded-pipeline-cli-20261023" ] || \
+             [ "${{ github.ref_name }}" = "feature/bounded-pipeline-cli-20261023" ]; then
             git -C /tmp/tgk fetch --depth=1 origin fix/reactive-theme-redraw-and-bounded-pipelines-20261023
             git -C /tmp/tgk checkout FETCH_HEAD
           fi
