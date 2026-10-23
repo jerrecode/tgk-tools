@@ -113,6 +113,91 @@ established by the offline test suite. This tools feature requires the
 corresponding TGK core theme API; the feature PR's CI intentionally tests
 against TGK's theme feature branch until it lands.
 
+## Advanced typography, windows, semantic icons and UI laboratories
+
+The new `tgk icons`, `tgk typography` and `tgk ui-lab` commands build
+on TGK's advanced navigation and typography APIs.
+
+```sh
+tgk icons --json                       # full icon registry as JSON
+tgk icons --category actions           # searchable/action symbol palette
+tgk icons --path dataset.jsonl         # classify JSONL file
+tgk icons --path /usr/lib --directory  # Linux directory icon
+tgk icons --svg search --svg-size 64 --svg-color '#18D0F9' > search.svg
+tgk files --start "$HOME" --icons --theme forest
+
+tgk typography --json                  # all default font preset definitions
+tgk typography --preview --theme paper # rich-text styled font gallery
+
+tgk ui-lab --mode normal --start-page home --theme ocean
+tgk ui-lab --mode dialog --start-page text --theme paper
+# overlay requires "Display over other apps" in Termux:GUI advanced settings:
+tgk ui-lab --mode overlay --start-page canvas --theme cyberpunk
+```
+
+The UI lab provides native TabLayout pages (home, icons, text, canvas,
+nested screens), in-activity popup visibility, a bounded RGBA world viewport
+with pan/pinch zoom, and HTML-formatted rich labels with JavaScript disabled.
+This is not full Kivy, unrestricted floating windows, or arbitrary HTML/CSS
+injection. App-level Android dialog/overlay windows operate as Activities;
+Termux:GUI overlay activity lifecycle differs from ordinary Activities.
+
+### Global typography and per-control overrides
+
+```sh
+tgk prompt --text-style terminal --font-family mono --font-size 19 \
+  --font-weight 700 --font-color-role accent --theme ocean \
+  --object-font heading.style=display \
+  --object-font heading.size=30 \
+  --object-color cancel.background=#6A274A \
+  --title 'Your project'
+```
+
+The `--text-style` selector defaults to `body`, and offers fifteen other
+presets including `display`, `title`, `small`, `terminal`, `code`,
+`serif`, `quote`, `warning`, `danger`, `muted`, and `link`.
+Other global overrides: `--font-family sans|serif|mono`, `--font-size`,
+`--font-weight` (100..900 by 100), `--italic`, `--underline`,
+`--strike`, `--text-align`, `--line-height`, and
+`--font-color-role`.
+
+For individual tagged native widgets, repeat
+`--object-font TARGET.FIELD=VALUE`: valid TARGET names are `root`,
+`heading`, `input`, `button`, `cancel`, `image`, `canvas`,
+`progress`, or `*` for generic fallback. Valid FIELD names are
+`style`, `size`, `family`, `weight`, `italic`, `underline`,
+`strike`, `align`, `line_height` and `role`.
+
+**Native rendering limitation:** Termux:GUI's ordinary TextViews support
+text size, gravity and color, **not** general font families, bold, italic,
+underline or mixed-span styling. TGK stores these properties as validated
+style metadata and renders their full semantics using its
+`RichTextLabel` WebView. A `--font-family` flag on an ordinary native
+button does not magically add a typeface setter that the Android bridge
+doesn't expose. The UI lab and typography gallery demonstrate the rich
+WebView path.
+
+Semantic icons use Unicode fallback glyphs for all named categories and
+a small self-contained SVG stroke subset; glyph appearance depends on
+Android fallback fonts. Exported SVG must be rasterized separately before
+display in a native ImageView.
+
+The `examples/` gallery now includes additional workflows:
+`11_typography_gallery.sh`, `12_icon_catalog.sh`,
+`13_icon_file_picker.sh`, `14_multiview_lab.sh`,
+`15_dialog_window.sh`, `16_system_overlay.sh`,
+`17_svg_vector_library.sh`, `18_custom_ui_style.sh`.
+```sh
+sh examples/11_typography_gallery.sh
+sh examples/14_multiview_lab.sh
+sh examples/18_custom_ui_style.sh
+```
+
+This tools feature PR depends on the matching TGK core advanced UI PR.
+The feature branch tests with its core peer until the core feature is
+merged; the temporary CI checkout override must then be removed and tested
+against the merged core `main`.
+
 ## Shell commands
 
 ```sh
