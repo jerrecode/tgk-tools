@@ -88,16 +88,68 @@ def run_confirm(args):
     if app.accepted:print('yes');return 0
     print('no');return 1
 
+def _read_choose_input(max_bytes):
+    """Read a UTF-8 source with at most one byte/character of overflow."""
+    source=getattr(sys.stdin,'buffer',None)
+    binary=source is not None
+    if source is None:source=sys.stdin
+    chunks=[]
+    remaining=max_bytes
+    try:
+        while True:
+            # Text-only streams count characters. A UTF-8 character needs up
+            # to four bytes; only a final single character may cross the cap.
+            size=min(65536,remaining+1) if binary else min(16384,max(1,remaining//4))
+            chunk=source.read(size)
+            if not chunk:break
+            binary=isinstance(chunk,bytes)
+            encoded=chunk if binary else chunk.encode('utf-8')
+            remaining-=len(encoded)
+            if remaining<0:
+                raise ValueError('Input exceeds --max-input-bytes; increase it explicitly')
+            chunks.append(encoded)
+        return b''.join(chunks).decode('utf-8')
+    except UnicodeError as exc:
+        raise ValueError('Choice input must be valid UTF-8; re-encode the input as UTF-8') from exc
+
+
 def run_choose(args):
-    if args.stdin:
-        args.options.extend(line.rstrip('\r\n') for line in sys.stdin if line.rstrip('\r\n'))
-    if args.json_input:
-        import json
-        values=json.load(sys.stdin)
-        if not isinstance(values,list) or not all(isinstance(v,str) for v in values):
-            raise ValueError('JSON input must be an array of strings')
-        args.options.extend(values)
-    if not args.options:raise ValueError('provide at least one option')
+    options=list(args.options)
+    if len(options)>args.max_options:
+        raise ValueError('Too many choices; increase --max-options explicitly')
+    remaining=args.max_input_bytes
+    try:
+        for option in options:
+            # Avoid a second unbounded allocation even for a huge argument.
+            for start in range(0,len(option),4096):
+                remaining-=len(option[start:start+4096].encode('utf-8'))
+                if remaining<0:
+                    raise ValueError('Input exceeds --max-input-bytes; increase it explicitly')
+    except UnicodeError as exc:
+        raise ValueError('Choice input must be valid UTF-8; re-encode the input as UTF-8') from exc
+    if args.stdin or args.json_input:
+        text=_read_choose_input(remaining)
+        if args.json_input:
+            import json
+            values=json.loads(text)
+            if not isinstance(values,list) or not all(isinstance(v,str) for v in values):
+                raise ValueError('JSON input must be an array of strings')
+            try:
+                for value in values:
+                    value.encode('utf-8')
+            except UnicodeError as exc:
+                raise ValueError('Choice input must be valid UTF-8; re-encode the input as UTF-8') from exc
+        else:
+            import re
+            # Count the raw source above; only ordinary line endings split choices.
+            values=re.split(r'\r\n?|\n',text)
+        for value in values:
+            if args.stdin and not value:continue
+            if len(options)>=args.max_options:
+                raise ValueError('Too many choices; increase --max-options explicitly')
+            options.append(value)
+    if not options:raise ValueError('provide at least one option')
+    args.options=options
     class Choose(App):
         result=None
         def build(self):
@@ -283,12 +335,23 @@ def _limited_file_entries(directory, *, boundary=None, hidden=False,
     return [(item[3], item[4]) for item in selected[:max_items]], len(selected) > max_items
 
 
+def _validate_file_target(path, *, is_dir, boundary=None):
+    """Best-effort freshness check, not protection from subsequent path changes."""
+    import stat
+    resolved=path.resolve(strict=True)
+    mode=resolved.stat().st_mode
+    if not (stat.S_ISDIR(mode) if is_dir else stat.S_ISREG(mode)):
+        raise ValueError(f'path is not a {"directory" if is_dir else "file"}: {path}')
+    if boundary is not None and not resolved.is_relative_to(boundary):
+        raise ValueError(f'path outside --root: {path}')
+    return resolved
+
+
 def run_files(args):
+    boundary=(_validate_file_target(Path(args.root).expanduser(),is_dir=True)
+              if args.root else None)
+    start=_validate_file_target(Path(args.start).expanduser(),is_dir=True,boundary=boundary)
     import termuxgui as tg
-    start=Path(args.start).expanduser().resolve()
-    if not start.is_dir():raise ValueError('starting path is not a directory')
-    boundary=Path(args.root).expanduser().resolve() if args.root else None
-    if boundary and not start.is_relative_to(boundary):raise ValueError('start outside --root')
     extension={x.lower().lstrip('.').strip() for x in args.ext}
     selection=None
     with tg.Connection() as c:
@@ -308,6 +371,7 @@ def run_files(args):
         controls=[(control,'cancel',None)]
         def render(directory):
             nonlocal controls
+            _validate_file_target(directory,is_dir=True,boundary=boundary)
             controls=[(control,'cancel',None)]
             heading.settext((args.title or 'Select a path')+'\n'+str(directory))
             scroll.clearchildren()
@@ -321,14 +385,10 @@ def run_files(args):
                 b=_paint_object(tg.Button(activity,'[Select this directory]',listbox),'button',args)
                 b.setwidth(tg.View.MATCH_PARENT);b.sendclickevent(True)
                 controls.append((b,'select',directory))
-            try:
-                entries,truncated=_limited_file_entries(
-                    directory,boundary=boundary,hidden=args.hidden,
-                    dirs_only=args.dirs_only,extension=extension,
-                    max_items=args.max_items)
-            except OSError as exc:
-                tg.TextView(activity,f'Cannot read directory: {exc}',listbox)
-                return
+            entries,truncated=_limited_file_entries(
+                directory,boundary=boundary,hidden=args.hidden,
+                dirs_only=args.dirs_only,extension=extension,
+                max_items=args.max_items)
             for path,is_dir in entries:
                 if getattr(args,'icons',False):
                     from tgk.icons import glyph,icon_for_path
@@ -349,7 +409,9 @@ def run_files(args):
                 for button,action,target in tuple(controls):
                     if event.value.get('id')!=button:continue
                     if action=='dir':render(target)
-                    elif action=='select':selection=target;activity.finish()
+                    elif action=='select':
+                        _validate_file_target(target,is_dir=args.dirs_only,boundary=boundary)
+                        selection=target;activity.finish()
                     else:activity.finish()
                     break
             if event.type=='destroy' and event.value.get('finishing'):break
@@ -673,7 +735,10 @@ def main(argv=None):
                              help='Named per-view text styling (size/style/family/weight/role/...)')
     a=sub.add_parser('prompt',parents=[theme_flags],help='prompt for text; prints answer');a.add_argument('--title');a.add_argument('--default',default='');a.add_argument('--password',action='store_true');a.add_argument('--multiline',action='store_true');a.set_defaults(run=run_prompt)
     a=sub.add_parser('confirm',parents=[theme_flags],help='yes/no choice; exit status 0=yes, 1=no');a.add_argument('message');a.add_argument('--title');a.set_defaults(run=run_confirm)
-    a=sub.add_parser('choose',parents=[theme_flags],help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append');a.set_defaults(run=run_choose)
+    a=sub.add_parser('choose',parents=[theme_flags],help='single/multiple choice; --multi outputs JSON array');a.add_argument('options',nargs='*');a.add_argument('--title');a.add_argument('--stdin',action='store_true');a.add_argument('--json-input',action='store_true');a.add_argument('--multi',action='store_true');a.add_argument('--selected',action='append')
+    a.add_argument('--max-options',type=int,default=1000,help='total choices, 1..10000 (default: 1000)')
+    a.add_argument('--max-input-bytes',type=int,default=1048576,help='total UTF-8 input bytes, 1..16777216 (default: 1048576)')
+    a.set_defaults(run=run_choose)
     a=sub.add_parser('show',parents=[theme_flags],help='read text file or piped input in native scroll view');a.add_argument('file');a.add_argument('--title');a.add_argument('--max-chars',type=int,default=100_000);a.set_defaults(run=run_show)
     a=sub.add_parser('image',parents=[theme_flags],help='PNG/JPG native image viewer');a.add_argument('file');a.add_argument('--max-bytes',type=int,default=24_000_000);a.set_defaults(run=run_image)
     a=sub.add_parser('files',parents=[theme_flags],help='browse and choose a file or folder');a.add_argument('--start',default='.');a.add_argument('--root');a.add_argument('--title');a.add_argument('--dirs-only',action='store_true');a.add_argument('--hidden',action='store_true');a.add_argument('--ext',action='append',default=[]);a.add_argument('--max-items',type=int,default=None);a.add_argument('--icons',action='store_true',help='show semantic file/folder symbols');a.set_defaults(run=run_files)
@@ -898,6 +963,9 @@ def main(argv=None):
     if args.command=='progress' and not 1024<=args.max_progress_json_bytes<=8388608:
         p.error('--max-progress-json-bytes must be 1024..8388608')
     if args.command=='choose' and args.stdin and args.json_input:p.error('Use either --stdin or --json-input')
+    if args.command=='choose':
+        if not 1<=args.max_options<=10000:p.error('--max-options must be in 1..10000')
+        if not 1<=args.max_input_bytes<=16777216:p.error('--max-input-bytes must be in 1..16777216')
     if args.command in ('adaptive-demo','layout-plan'):
         if not 1<=args.columns<=32:p.error('--columns must be in 1..32')
         if args.touch_target_dp<32 or args.grid_unit_dp<1:
