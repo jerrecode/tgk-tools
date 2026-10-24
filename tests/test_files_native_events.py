@@ -1,4 +1,4 @@
-"""Regression test for unhashable native Termux:GUI Button instances."""
+"""Native file-picker event dispatch and stale-path regressions."""
 import argparse
 import contextlib
 import io
@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from tgk_tools.cli import run_files
+from tgk_tools.cli import main, run_files
 
 
 class NativeButton:
@@ -62,15 +62,20 @@ class NativeView:
 
 class Connection:
     labels = []
+    entered = exited = False
 
     def __enter__(self):
+        type(self).entered = True
         return self
 
     def __exit__(self, *args):
-        pass
+        type(self).exited = True
 
     def events(self):
         for label in type(self).labels:
+            if isinstance(label, tuple):
+                label, change = label
+                change()
             buttons = [b for b in NativeButton.buttons if b.text == label]
             if not buttons:
                 raise AssertionError(f'No button: {label!r}')
@@ -92,6 +97,7 @@ class NativeFileDialogTests(unittest.TestCase):
         NativeButton.buttons = []
         NativeButton.next_id = 0
         NativeView.views = []
+        Connection.entered = Connection.exited = False
 
     def dialog(self, clicks, *, dirs_only=False, boundary=None):
         Connection.labels = clicks
@@ -103,6 +109,135 @@ class NativeFileDialogTests(unittest.TestCase):
         with patch.dict(sys.modules, {'termuxgui': tg}), contextlib.redirect_stdout(stdout):
             code = run_files(options)
         return code, stdout.getvalue()
+
+    def cli_dialog(self, clicks, *, start=None, boundary=None, dirs_only=False):
+        Connection.labels = clicks
+        args = ['files', '--start', str(start or self.root), '--max-items', '25']
+        if boundary is not None:
+            args += ['--root', str(boundary)]
+        if dirs_only:
+            args += ['--dirs-only']
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with patch.dict(sys.modules, {'termuxgui': tg}), \
+                contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            code = main(args)
+        return code, stdout.getvalue(), stderr.getvalue()
+
+    def assert_stale_rejected(self, clicks, **kwargs):
+        code, output, error = self.cli_dialog(clicks, **kwargs)
+        self.assertEqual((code, output), (2, ''))
+        self.assertTrue(error)
+        self.assertNotIn('Traceback', error)
+        self.assertTrue(Connection.entered)
+        self.assertTrue(Connection.exited)
+
+    def test_retargeted_file_link_is_rejected_before_selection(self):
+        (self.root / 'target.txt').write_text('inside')
+        for initial_link in (False, True):
+            with self.subTest(initial_link=initial_link), tempfile.TemporaryDirectory() as outside:
+                file = self.root / 'inside.txt'
+                file.unlink(missing_ok=True)
+                if initial_link:
+                    file.symlink_to(self.root / 'target.txt')
+                else:
+                    file.write_text('inside')
+                target = Path(outside) / 'private.txt'
+                target.write_text('outside')
+                def replace():
+                    file.unlink()
+                    file.symlink_to(target)
+                self.assert_stale_rejected([('       inside.txt', replace)], boundary=self.root)
+                file.unlink()
+
+    def test_retargeted_directory_link_is_rejected_before_population(self):
+        (self.root / 'inside').mkdir()
+        link = self.root / 'link'
+        link.symlink_to(self.root / 'inside', target_is_directory=True)
+        with tempfile.TemporaryDirectory() as outside:
+            (Path(outside) / 'private.txt').write_text('outside')
+            def retarget():
+                link.unlink()
+                link.symlink_to(outside, target_is_directory=True)
+            self.assert_stale_rejected([('[DIR] link', retarget), 'Cancel'], boundary=self.root)
+            self.assertFalse(any(b.text.endswith('private.txt') for b in NativeButton.buttons))
+
+    def test_vanished_file_is_rejected_before_selection(self):
+        file = self.root / 'gone.txt'
+        file.touch()
+        self.assert_stale_rejected([('       gone.txt', file.unlink)])
+
+    def test_file_replaced_with_directory_is_rejected_before_selection(self):
+        file = self.root / 'changed.txt'
+        file.touch()
+        def replace():
+            file.unlink()
+            file.mkdir()
+        self.assert_stale_rejected([('       changed.txt', replace)])
+
+    def test_directory_replaced_with_file_is_rejected_before_navigation(self):
+        directory = self.root / 'changed'
+        directory.mkdir()
+        def replace():
+            directory.rmdir()
+            directory.touch()
+        self.assert_stale_rejected([('[DIR] changed', replace), 'Cancel'])
+
+    def test_current_directory_retarget_is_rejected_before_selection(self):
+        (self.root / 'inside').mkdir()
+        link = self.root / 'link'
+        link.symlink_to(self.root / 'inside', target_is_directory=True)
+        with tempfile.TemporaryDirectory() as outside:
+            def retarget():
+                link.unlink()
+                link.symlink_to(outside, target_is_directory=True)
+            self.assert_stale_rejected(
+                ['[DIR] link', ('[Select this directory]', retarget)],
+                dirs_only=True, boundary=self.root)
+
+    def test_parent_retarget_is_rejected_before_population(self):
+        (self.root / 'inside' / 'sub').mkdir(parents=True)
+        link = self.root / 'link'
+        link.symlink_to(self.root / 'inside', target_is_directory=True)
+        with tempfile.TemporaryDirectory() as outside:
+            (Path(outside) / 'private.txt').touch()
+            def retarget():
+                link.unlink()
+                link.symlink_to(outside, target_is_directory=True)
+            self.assert_stale_rejected(
+                ['[DIR] link', '[DIR] sub', ('[..] Parent directory', retarget), 'Cancel'],
+                boundary=self.root)
+            self.assertFalse(any(b.text.endswith('private.txt') for b in NativeButton.buttons))
+
+    def test_invalid_initial_paths_fail_before_activity(self):
+        file = self.root / 'file'
+        file.touch()
+        missing = self.root / 'missing'
+        child = self.root / 'child'
+        child.mkdir()
+        for start, boundary in ((missing, None), (file, None),
+                                (self.root, missing), (self.root, file),
+                                (self.root, child)):
+            with self.subTest(start=start, boundary=boundary), \
+                    patch.object(tg, 'Activity', side_effect=AssertionError('opened Activity')):
+                code, output, error = self.cli_dialog([], start=start, boundary=boundary)
+                self.assertEqual((code, output), (2, ''))
+                self.assertTrue(error)
+                self.assertFalse(Connection.entered)
+
+    def test_valid_in_root_file_link_preserves_lexical_selection(self):
+        (self.root / 'inside.txt').touch()
+        link = self.root / 'link.txt'
+        link.symlink_to(self.root / 'inside.txt')
+        self.assertEqual(self.cli_dialog(['       link.txt'], boundary=self.root),
+                         (0, str(link) + '\n', ''))
+
+    def test_valid_in_root_directory_link_and_parent_navigation(self):
+        (self.root / 'inside' / 'sub').mkdir(parents=True)
+        link = self.root / 'link'
+        link.symlink_to(self.root / 'inside', target_is_directory=True)
+        self.assertEqual(self.cli_dialog(
+            ['[DIR] link', '[DIR] sub', '[..] Parent directory', '[Select this directory]'],
+            dirs_only=True, boundary=self.root), (0, str(link) + '\n', ''))
 
     def test_unhashable_button_cancel(self):
         self.assertIsNone(NativeButton.__hash__)

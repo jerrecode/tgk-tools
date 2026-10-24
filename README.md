@@ -739,6 +739,22 @@ tgk doctor --json --connect
 tgk canvas-demo --width 512 --height 512 --fps 30 --seconds 15
 ```
 
+`choose` appends piped choices after positional choices. Plain `--stdin` input
+skips empty lines and accepts LF, CRLF and CR endings; other Unicode line
+separators remain within a choice. `--json-input` requires an array of strings
+without unpaired Unicode surrogates. Stdin must be UTF-8. The default limits
+are **1000 choices** and **1048576 input bytes**. Set `--max-options` (1..10000) and
+`--max-input-bytes` (1..16777216) explicitly for larger inputs. Both limits
+cover the combined positional and piped input: the byte budget counts UTF-8
+bytes of positional arguments plus the entire piped source, including newlines,
+JSON syntax and whitespace. These are total limits, with no separate per-choice
+cap. `--selected` only marks existing choices and does not add any.
+
+Input is read in bounded chunks and validated before opening the choice dialog.
+Empty or invalid input and exceeded limits return **2**, explain the error on
+stderr and leave stdout empty. Cancellation returns **1**; successful selection
+returns **0** with a line of text, or a JSON array with `--multi`.
+
 ### Progress file format
 
 A producer should publish complete updates atomically by writing to a separate temporary file and renaming it into place. The viewer reads at most **1 MiB + 1 byte** per update; oversized or malformed JSON shows a validation error instead of allocating unbounded memory. Non-finite progress values (`NaN`/`Infinity`) are rejected; finite values are clamped to 0–100. Repeated equivalent snapshots do not trigger redundant native progress/text updates:
@@ -752,7 +768,7 @@ mv "$TMPDIR/task.json.tmp" "$TMPDIR/task.json"
 
 Exit codes: success 0, user cancellation/negative confirmation 1, argument/runtime error 2; progress timeout returns 124. The program prints structured return values to stdout; logs and diagnostics go to stderr where possible. GUI commands are blocking by design; run `progress` in background if the terminal must keep working.
 
-`tgk doctor --connect` and any GUI command require the Termux:GUI Android app/service; ordinary help and option parsing can run anywhere. The file picker enforces optional `--root` via resolved paths to reduce accidental traversal, but it is not a security sandbox. It now retains at most `--max-items` + 1 eligible entries for sorting instead of loading the entire directory into a Python list; directories are listed first with case-insensitive ordering. A full directory scan is still needed to determine the first entries, so this is a **memory improvement, not asynchronous browsing or pagination**. Large images/text have configurable limits.
+`tgk doctor --connect` and any GUI command require the Termux:GUI Android app/service; ordinary help and option parsing can run anywhere. The file picker validates starting/root directories before opening an Activity, and rechecks existence, type and the optional resolved `--root` boundary before navigation or selection. Stale paths fail with exit 2, an error on stderr and empty stdout. These are best-effort freshness checks: paths can change again after validation, so the picker is not a security sandbox. It now retains at most `--max-items` + 1 eligible entries for sorting instead of loading the entire directory into a Python list; directories are listed first with case-insensitive ordering. A full directory scan is still needed to determine the first entries, so this is a **memory improvement, not asynchronous browsing or pagination**. Large images/text have configurable limits.
 
 `show --max-chars N` reads at most N+1 Unicode characters before rejecting oversized file/stdin input; it does not read the entire input into memory first. Text/image limits must be positive. Timeouts and demo durations must be finite and non-negative (0 disables the limit). Invalid options fail before opening a GUI. Missing Termux:GUI Python bindings produce installation guidance on stderr and exit 2.
 
