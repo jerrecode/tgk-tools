@@ -74,6 +74,19 @@ class IconBuildCLITests(unittest.TestCase):
                 self.assertEqual(list((Path(root)/'icons/ico').iterdir()), [])
                 clear_config_cache()
 
+    def test_svg_color_overrides_all_semantic_parts(self):
+        from xml.etree import ElementTree as ET
+        for name in ('refresh','sync','run'):
+            with self.subTest(name=name):
+                code,source,error=self.run_cli('icons','--svg',name,
+                                              '--svg-color','#E12345')
+                self.assertEqual(code,0,error)
+                root=ET.fromstring(source)
+                colors={node.get(key) for node in root.iter()
+                        for key in ('stroke','fill')
+                        if node.get(key) not in (None,'none')}
+                self.assertEqual(colors,{'#E12345FF'})
+
     def test_rebuilding_existing_output_requires_explicit_overwrite(self):
         with tempfile.TemporaryDirectory() as root:
             self.assertEqual(self.run_cli('icons-build','--output',root,

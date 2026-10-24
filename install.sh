@@ -29,7 +29,7 @@ command -v "$PYTHON" >/dev/null 2>&1 || {
   echo 'Missing Python build backend: python -m pip install setuptools' >&2
   exit 1
 }
-if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; from tgk.demos import Gallery; from tgk.install_assets import initialize_icon_assets; assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 6, 10)' >/dev/null 2>&1; then
+if ! "$PYTHON" -c 'import tgk; from tgk.canvas import _lib; _lib(); from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; from tgk.demos import Gallery; from tgk.install_assets import initialize_icon_assets; assert tuple(map(int, tgk.__version__.split(".")[:3])) >= (0, 6, 11)' >/dev/null 2>&1; then
   if [ -f ../install.sh ] && [ -f ../tgk/native/tgk_canvas.c ]; then
     printf '%s\n' 'Installing TGK from parent checkout as a self-contained copy...'
     (cd .. && PYTHON="$PYTHON" sh ./install.sh --copy)
@@ -62,5 +62,5 @@ fi
 "$PYTHON" -m tgk.config validate
 "$PYTHON" -m tgk.config audit
 "$PYTHON" -m tgk.install_assets
-"$PYTHON" -c 'import tgk,tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; from tgk.demos import Gallery; assert tuple(map(int,tgk.__version__.split(".")[:3])) >= (0,6,10), "TGK >=0.6.10 required; update the framework source"; assert callable(config.patch_config) and callable(config._config_write_lock); _lib()'
+"$PYTHON" -c 'import tgk,tgk_tools.cli; from tgk.canvas import _lib; from tgk import io_pipeline,adaptive,style_tokens,layout_helpers,icon_builder,config; from tgk.demos import Gallery; assert tuple(map(int,tgk.__version__.split(".")[:3])) >= (0,6,11), "TGK >=0.6.11 required; update the framework source"; assert callable(config.patch_config) and callable(config._config_write_lock); _lib()'
 printf '%s\n' 'Installed. Start with: tgk doctor --connect; tgk --help'

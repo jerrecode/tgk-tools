@@ -134,20 +134,20 @@ Termux:GUI IPC, while other commands can be tested on Linux without a GUI.
 
 ## Downloadable offline installer archive
 
-The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.10.tar.gz` archive from a successful workflow run, then on Termux:
+The [GitHub Actions CI workflow](https://github.com/jerrecode/tgk-tools/actions/workflows/ci.yml) builds an artifact named **tgk-offline-installer** containing both TGK and TGK Tools sources, a combined `install.sh`, and installation instructions. Download the `tgk_bundle_v0.6.11.tar.gz` archive from a successful workflow run, then on Termux:
 
 ```sh
 pkg install -y python clang
 python -m pip install setuptools termuxgui
-tar -xzf tgk_bundle_v0.6.10.tar.gz
-cd tgk_bundle_v0.6.10
+tar -xzf tgk_bundle_v0.6.11.tar.gz
+cd tgk_bundle_v0.6.11
 sh ./install.sh
 tgk doctor --connect
 ```
 
-That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.10.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
+That bundle installs both packages as **non-editable copies**; the extracted source directory may be removed once installed. You need a compatible Termux:GUI Android app for real GUI operations. To build this same bundle locally with sibling repository checkouts, run `python scripts/build_bundle.py --tgk-source ../tgk --out tgk_bundle_v0.6.11.tar.gz`. No x86 Linux binary is shipped; the C library is compiled on the installation device.
 
-Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.10.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
+Bundle builds normalize timestamps, owner IDs and permissions so identical source contents produce identical archive bytes. Rebuilding at the same output path excludes the previous archive. CI verifies each downloadable bundle with `python scripts/check_bundle_install.py tgk_bundle_v0.6.11.tar.gz`: a disposable environment installs and reinstalls without network access, deletes the extracted sources, checks the installed C renderer and CLI, then uninstalls both packages. The checker requires Python 3.12+ and existing pip/setuptools/wheel build tools. This Linux installation check does not establish Android ABI or GUI correctness.
 
 ## Unified colors and progressively complex GUI laboratories
 
@@ -496,13 +496,13 @@ run, scissors for cut, and conventional play/pause/stop shapes). The same
 vector sources produce optional raster icon packs.
 
 TGK's installation routine refreshes older, manifest-verified and unmodified
-generated icon catalogs. It preserves user-modified or foreign catalogs instead
-of overwriting them. Explicit `icons-build --overwrite` still replaces its
+generated icon catalogs. It rechecks the moved original after staging to preserve
+concurrent edits, and keeps a recovery copy (reported as `previous_output`) after
+a successful automatic upgrade. User-modified or foreign catalogs are preserved. Explicit `icons-build --overwrite` still replaces its
 selected destination, so back up manually edited output first.
 
-The output is `$HOME/.cache/tgk/icon-pack/icons/svg`, `/tmp/icons/ico`,
-`/tmp/icons/low_res`, `/tmp/icons/mid_res`,
-`/tmp/icons/high_res` and `/tmp/icons/manifest.json`. The default
+The output root is `$HOME/.cache/tgk/icon-pack/icons/`, containing
+`svg/`, `ico/`, `low_res/`, `mid_res/`, `high_res/` and `manifest.json`. The default
 raster dimensions are 32, 96 and 256 pixels, and ICO contains several
 small resolutions. A pure SVG build leaves raster directories empty.
 
@@ -647,7 +647,7 @@ tgk size-plan --connect --item-width-fraction .9 --json
 Existing `tgk layout-plan` and `tgk adaptive-demo` continue to honor
 configured physical grid columns and their 12-unit logical span mapping.
 This release makes installed TGK Tools package metadata, its Python version,
-and the downloadable `tgk_bundle_v0.6.10.tar.gz` agree.
+and the downloadable `tgk_bundle_v0.6.11.tar.gz` agree.
 
 Physical display FPS, panel resolution, and unknown status-bar insets are
 not guessed; Android hardware validation is still required.
@@ -685,7 +685,7 @@ participate in the lock unless those programs also acquire it.
 
 ## Install-time generated icon catalog (0.6.9)
 
-`sh ./install.sh` verifies TGK core >=0.6.10, creates any missing
+`sh ./install.sh` verifies TGK core >=0.6.11, creates any missing
 configuration, palette, text-style and option presets, audits saved presets,
 and initializes `~/.config/tgk/icons/` when absent. The new catalog includes
 a manifest and generated SVGs; the `ico/`, `low_res/`, `mid_res/` and
